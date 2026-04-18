@@ -1,0 +1,119 @@
+/* ERP 全局重置样式 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1a1a2e;
+  background: #f8f9fc;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  display: block !important;
+  grid-template-columns: none !important;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Element Plus el-main 宽度撑满 */
+.el-main {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
+}
+
+/* 页面容器 — 给各页面内容加内边距 */
+.page-container {
+  padding: 24px 28px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* =============================================
+   侧边栏菜单 — 全局强制白色文字（最高优先级）
+   ============================================= */
+.el-aside .el-menu-item,
+.el-aside .el-sub-menu__title {
+  color: #ffffff !important;
+}
+.el-aside .el-menu-item span,
+.el-aside .el-sub-menu__title span {
+  color: #ffffff !important;
+}
+.el-aside .el-menu-item .el-icon,
+.el-aside .el-sub-menu__title .el-icon {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+.el-aside .el-menu-item:hover,
+.el-aside .el-sub-menu__title:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+.el-aside .el-menu-item.is-active {
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.3), rgba(102, 126, 234, 0.15)) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+/* 展开状态的子菜单项（白色背景）— 文字图标都用深色 */
+.el-aside .el-sub-menu.is-opened .el-menu-item,
+.el-aside .el-sub-menu.is-opened .el-menu-item span,
+.el-aside .el-sub-menu.is-opened .el-menu-item .el-icon {
+  color: #1a1a2e !important;
+}
+.el-aside .el-sub-menu.is-opened .el-menu-item.is-active {
+  color: #667eea !important;
+  font-weight: 600;
+}
+.el-aside .el-sub-menu.is-opened .el-menu-item.is-active .el-icon {
+  color: #667eea !important;
+}
+.el-aside .el-sub-menu.is-opened .el-menu-item:hover {
+  background: #f3f4f6 !important;
+  color: #667eea !important;
+}
+.el-aside .el-sub-menu.is-opened .el-menu-item:hover .el-icon {
+  color: #667eea !important;
+}
+/* AI 客服占位项文字 */
+.el-aside .el-menu-item.is-disabled {
+  opacity: 0.5 !important;
+  color: #ffffff !important;
+}
+.el-aside .el-menu-item.is-disabled .el-icon,
+.el-aside .el-menu-item.is-disabled span {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
