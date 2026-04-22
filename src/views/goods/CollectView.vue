@@ -7,12 +7,152 @@
         <p class="page-desc">从 1688 等平台采集商品信息，支持批量采集和自动入库</p>
       </div>
       <div class="page-header-right">
-        <el-button text @click="showGuide = !showGuide">
+        <!-- 集采模式开关 -->
+        <div class="collect-mode-switch">
+          <el-tooltip content="开启后，采集完成后自动进入选品评估与一站式上货流程" placement="bottom">
+            <div class="switch-wrapper">
+              <span class="switch-label">集采模式</span>
+              <el-switch
+                :model-value="oneStop.collectionModeEnabled"
+                @change="onCollectionModeToggle"
+                size="small"
+                inline-prompt
+                active-text="开"
+                inactive-text="关"
+                active-color="#22c55e"
+              />
+            </div>
+          </el-tooltip>
+          <el-button
+            v-if="oneStop.collectionModeEnabled"
+            type="primary"
+            size="small"
+            plain
+            @click="openSelectionReport"
+          >
+            <el-icon><DataAnalysis /></el-icon>
+            选品评估
+            <el-badge v-if="oneStop.pendingCount > 0" :value="oneStop.pendingCount" class="item" type="warning" />
+          </el-button>
+        </div>
+        <el-button v-if="!oneStop.collectionModeEnabled" text @click="showGuide = !showGuide">
           <el-icon><QuestionFilled /></el-icon>
           使用指南
         </el-button>
       </div>
     </div>
+
+    <!-- ====== 集采模式配置面板 ====== -->
+    <Transition name="slide-down">
+      <el-card v-if="oneStop.collectionModeEnabled && showCollectConfig" class="collect-config-panel">
+        <template #header>
+          <div class="card-header">
+            <div class="card-header-left">
+              <el-icon><Setting /></el-icon>
+              <span>集采模式配置</span>
+            </div>
+            <div class="config-header-right">
+              <el-tag type="success" size="small">已开启 · 自动执行选品→上货流程</el-tag>
+              <el-button size="small" text @click="showCollectConfig = false">收起</el-button>
+            </div>
+          </div>
+        </template>
+
+        <div class="config-sections">
+          <!-- 配置1：目标平台 -->
+          <div class="config-section">
+            <div class="config-section-title">目标上架平台</div>
+            <PlatformSelect
+              v-model="oneStop.collectConfig.targetPlatforms"
+              :max="4"
+              placeholder="选择目标平台（小白模式默认展示核心平台）"
+            />
+            <div class="config-hint">已选 {{ oneStop.collectConfig.targetPlatforms.length }} 个平台</div>
+          </div>
+
+          <!-- 配置2：定价规则 -->
+          <div class="config-section">
+            <div class="config-section-title">定价规则</div>
+            <div class="pricing-templates">
+              <el-radio-group
+                v-model="activePricingTemplate"
+                size="small"
+                @change="onPricingTemplateChange"
+              >
+                <el-radio-button
+                  v-for="tpl in PRICING_TEMPLATES"
+                  :key="tpl.id"
+                  :value="tpl.id"
+                >
+                  {{ tpl.label }}
+                </el-radio-button>
+              </el-radio-group>
+            </div>
+            <el-form :model="oneStop.collectConfig.pricing" :inline="true" size="small" class="pricing-advanced">
+              <el-form-item label="加价倍率">
+                <el-input-number
+                  v-model="oneStop.collectConfig.pricing.multiplier"
+                  :min="1"
+                  :max="10"
+                  :precision="2"
+                  controls-position="right"
+                />
+                <span class="input-suffix">倍</span>
+              </el-form-item>
+              <el-form-item label="平台佣金">
+                <el-input-number
+                  v-model="oneStop.collectConfig.pricing.platformCommission"
+                  :min="0"
+                  :max="30"
+                  :precision="1"
+                  controls-position="right"
+                />
+                <span class="input-suffix">%</span>
+              </el-form-item>
+              <el-form-item label="物流成本">
+                <el-input-number
+                  v-model="oneStop.collectConfig.pricing.logisticsCost"
+                  :min="0"
+                  :max="200"
+                  :precision="2"
+                  controls-position="right"
+                />
+                <span class="input-suffix">¥</span>
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- 配置3：筛选规则 -->
+          <div class="config-section">
+            <div class="config-section-title">筛选规则</div>
+            <div class="filter-rules">
+              <el-radio-group v-model="oneStop.collectConfig.filter.mode" size="small">
+                <el-radio value="profit_amount">按利润额</el-radio>
+                <el-radio value="profit_rate">按利润率</el-radio>
+              </el-radio-group>
+              <el-input-number
+                v-if="oneStop.collectConfig.filter.mode === 'profit_amount'"
+                v-model="oneStop.collectConfig.filter.minProfit"
+                :min="0"
+                :max="10000"
+                :precision="2"
+                placeholder="最低利润额"
+              />
+              <el-input-number
+                v-else
+                v-model="oneStop.collectConfig.filter.minProfitRate"
+                :min="0"
+                :max="100"
+                :precision="1"
+                placeholder="最低毛利率"
+              />
+              <span v-if="oneStop.collectConfig.filter.mode === 'profit_amount'">¥ 以上</span>
+              <span v-else>% 以上</span>
+            </div>
+          </div>
+        </div>
+      </el-card>
+    </Transition>
 
     <!-- 使用指南 -->
     <Transition name="slide-down">
@@ -355,21 +495,100 @@
         </el-card>
       </div>
     </div>
+
+    <!-- ====== AI 选品报告弹窗（步骤3必经拦截） ====== -->
+    <AiSelectionReport
+      v-model="showSelectionReport"
+      :goods-list="reportGoodsList"
+      :config="oneStop.collectConfig"
+      @confirm="onReportConfirm"
+      @to-draft="onReportToDraft"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { collect1688Single } from '@/api/collect'
 import { generateTitle, generateDescription } from '@/api/ai'
+import { useOneStopStore, PRICING_TEMPLATES } from '@/stores/useOneStop'
+import PlatformSelect from '@/components/PlatformSelect.vue'
+import AiSelectionReport from '@/components/AiSelectionReport.vue'
+
+const oneStop = useOneStopStore()
 
 const formRef = ref()
 const loading = ref(false)
 const result = ref(null)
-const showGuide = ref(true)
+const showGuide = ref(false)  // 集采模式下默认不显示引导
 const aiLoading = ref(false)
 let aiResult = reactive({ title: '', features: '', desc: '' })
+
+// ── 集采模式开关 ──────────────────────────────────────────────
+const showCollectConfig = ref(false)  // 配置面板默认折叠
+
+function onCollectionModeToggle(val) {
+  showCollectConfig.value = val
+  if (val) {
+    showGuide.value = false  // 开启集采模式时隐藏旧引导
+  }
+}
+
+// ── 集采配置快捷模板 ──────────────────────────────────────────
+const activePricingTemplate = ref('normal')
+function onPricingTemplateChange(id) {
+  activePricingTemplate.value = id
+  oneStop.applyPricingTemplate(id)
+}
+
+// ── AI 选品报告弹窗 ──────────────────────────────────────────
+const showSelectionReport = ref(false)
+const reportGoodsList = ref([])
+
+async function openSelectionReport() {
+  // 批量评估所有待评估商品
+  if (oneStop.pendingGoods.length === 0) {
+    ElMessage.warning('暂无待评估商品')
+    return
+  }
+  reportGoodsList.value = oneStop.pendingGoods
+  showSelectionReport.value = true
+}
+
+function onReportConfirm(selected) {
+  // 用户确认后，选中的商品进入筛选环节
+  selected.forEach(id => {
+    if (!oneStop.selectedGoods.includes(id)) {
+      oneStop.selectedGoods.push(id)
+    }
+  })
+  showSelectionReport.value = false
+  ElMessage.success(`已确认 ${selected.length} 款商品，可前往「一站式上货」进行最终筛选与上架`)
+}
+
+function onReportToDraft() {
+  // 暂不上货，全部存入草稿箱
+  showSelectionReport.value = false
+  ElMessage.info('商品已存入草稿箱，可在「商品管理」中随时编辑上架')
+  oneStop.resetCollectFlow()
+}
+
+// ── 采集完成后 → 自动进入集采流程 ────────────────────────────
+function triggerCollectWorkflow(goods) {
+  if (!oneStop.collectionModeEnabled) return
+
+  // 1. 添加到待评估队列
+  oneStop.addPendingGoods(goods)
+
+  // 2. 立即触发 AI 评估
+  oneStop.evaluateGoods(goods).then(ev => {
+    // 3. 自动弹出选品报告（单商品时直接显示）
+    if (oneStop.pendingGoods.length >= 1) {
+      showSelectionReport.value = true
+    }
+  })
+}
 
 // ===== AI 引导相关 =====
 const guideDialogVisible = ref(false)
@@ -530,6 +749,11 @@ async function handleCollect() {
     aiResult.features = ''
     aiResult.desc = ''
     ElMessage.success('采集成功')
+
+    // 集采模式：采集完成后自动进入选品评估流程
+    if (oneStop.collectionModeEnabled) {
+      triggerCollectWorkflow(result.value)
+    }
   } catch {
     // 错误已在 request.js 拦截器中统一处理
   } finally {
@@ -544,7 +768,12 @@ function extractOfferId(url) {
 }
 
 function handleImport() {
-  ElMessage.success('商品已入库')
+  // 集采模式：入库后也添加到待评估队列
+  if (oneStop.collectionModeEnabled && result.value) {
+    triggerCollectWorkflow(result.value)
+  } else {
+    ElMessage.success('商品已入库')
+  }
   result.value = null
   aiResult.title = ''
   aiResult.features = ''
@@ -856,4 +1085,82 @@ function handleApplyAi() {
 .slide-down-enter-active, .slide-down-leave-active { transition: all 0.3s ease; overflow: hidden; }
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-10px); max-height: 0; }
 .slide-down-enter-to, .slide-down-leave-from { max-height: 200px; }
+
+/* 集采模式开关 */
+.collect-mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.switch-label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+.config-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 集采配置面板 */
+.collect-config-panel {
+  margin-bottom: 16px;
+  border: 1px solid #d1fae5;
+  background: linear-gradient(135deg, rgba(34,197,94,.03) 0%, rgba(16,185,129,.03) 100%);
+}
+.collect-config-panel :deep(.el-card__header) {
+  background: rgba(34,197,94,.06);
+  padding: 10px 16px;
+}
+.config-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.config-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.config-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.pricing-templates {
+  margin-bottom: 4px;
+}
+.pricing-advanced {
+  margin-top: 4px;
+}
+.pricing-advanced .el-form-item {
+  margin-bottom: 4px;
+}
+.input-suffix {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-left: 4px;
+}
+.filter-rules {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-rules .el-input-number {
+  width: 110px;
+}
 </style>

@@ -392,4 +392,37 @@ export async function generateFeatures(goodsInfo) {
   return res?.features || []
 }
 
-export default { generateTitle, generateDescription, translate, generateImage, editImage, generateFeatures }
+// ===================== 拓岳AI对话（走后端代理，避免CORS）=====================
+/**
+ * 拓岳AI对话（通过Django后端代理）
+ * @param {string[]} messages - 对话历史 [{role, content}, ...]
+ * @param {string} systemPrompt - 系统提示词
+ * @returns {Promise<string>} AI 回复文本
+ */
+export async function tuoyueChat(messages, systemPrompt = '') {
+  console.log('[tuoyueChat] 调用 Django 后端代理...')
+
+  try {
+    const res = await apiClient.post('/api/ai/chat/', {
+      messages,
+      system_prompt: systemPrompt,
+      temperature: 0.7,
+      max_tokens: 800,
+    })
+
+    return res?.reply || ''
+  } catch (err) {
+    console.error('[tuoyueChat] 请求失败:', err.message)
+    throw err
+  }
+}
+
+export default {
+  generateTitle,
+  generateDescription,
+  translate,
+  generateImage,
+  editImage,
+  generateFeatures,
+  tuoyueChat,
+}

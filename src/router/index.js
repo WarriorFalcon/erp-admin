@@ -41,6 +41,12 @@ const router = createRouter({
       meta: { title: '商品上货', icon: 'Upload' },
     },
     {
+      path: '/goods/onestop',
+      name: 'goods-onestop',
+      component: () => import('@/views/goods/OneStopView.vue'),
+      meta: { title: '一站式采集上货', icon: 'MagicStick' },
+    },
+    {
       path: '/goods/decision',
       name: 'goods-decision',
       component: () => import('@/views/goods/DecisionView.vue'),
@@ -87,6 +93,13 @@ const router = createRouter({
       name: 'reports',
       component: () => import('@/views/reports/IndexView.vue'),
       meta: { title: '数据报表', icon: 'DataLine' },
+    },
+    // ==================== 插件市场（P2） ====================
+    {
+      path: '/plugins',
+      name: 'plugins',
+      component: () => import('@/views/plugins/IndexView.vue'),
+      meta: { title: '插件市场', icon: 'Grid' },
     },
   ],
 })

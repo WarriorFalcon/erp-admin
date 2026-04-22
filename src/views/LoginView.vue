@@ -16,6 +16,33 @@
         <p class="logo-subtitle">跨境电商ERP管理系统</p>
       </div>
 
+      <!-- 双模式切换（醒目大卡片） -->
+      <div class="mode-selector">
+        <div
+          :class="['mode-card', 'beginner', { active: loginMode === 'beginner' }]"
+          @click="loginMode = 'beginner'"
+        >
+          <div class="mode-card-icon">🌟</div>
+          <div class="mode-card-content">
+            <div class="mode-card-title">小白模式</div>
+            <div class="mode-card-desc">AI全程带路 · 一键铺货 · 简单高效</div>
+          </div>
+          <div v-if="loginMode === 'beginner'" class="mode-card-check">✓</div>
+        </div>
+
+        <div
+          :class="['mode-card', 'expert', { active: loginMode === 'expert' }]"
+          @click="loginMode = 'expert'"
+        >
+          <div class="mode-card-icon">⚡</div>
+          <div class="mode-card-content">
+            <div class="mode-card-title">资深模式</div>
+            <div class="mode-card-desc">全量功能 · 全平台适配 · 精细运营</div>
+          </div>
+          <div v-if="loginMode === 'expert'" class="mode-card-check">✓</div>
+        </div>
+      </div>
+
       <!-- 表单 -->
       <el-form
         ref="formRef"
@@ -91,10 +118,12 @@ import { ref, reactive, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Phone, Message } from '@element-plus/icons-vue'
+import { useAppStore } from '@/stores/useAppStore'
 // MOCK模式：不使用真实API
 // import { login, sendSmsCode, verifySmsCode } from '@/api/auth'
 
 const router = useRouter()
+const appStore = useAppStore()
 const formRef = ref(null)
 const loading = ref(false)
 const rememberMe = ref(false)
@@ -105,6 +134,11 @@ const loginForm = reactive({
   phone: '',
   code: '',
 })
+
+// ── 双模式切换 ────────────────────────────────────────────
+// 'beginner': 小白模式（一键铺货，AI全程带路）
+// 'expert':   资深模式（全量功能，全平台适配）
+const loginMode = ref(appStore.mode || 'beginner')
 
 const rules = {
   phone: [
@@ -169,12 +203,15 @@ async function handleLogin() {
     localStorage.setItem('access_token', mockToken)
     localStorage.setItem('refresh_token', mockToken + '_refresh')
     localStorage.setItem('user_phone', loginForm.phone)
-    
+
     if (rememberMe.value) {
       localStorage.setItem('remembered_phone', loginForm.phone)
     }
-    
-    ElMessage.success('登录成功')
+
+    // 保存选择的模式，登录后保持该模式
+    appStore.setMode(loginMode.value)
+
+    ElMessage.success(`登录成功，欢迎使用${appStore.modeLabel}！`)
     router.push('/')
     loading.value = false
   })
@@ -275,7 +312,7 @@ onUnmounted(() => {
 /* Logo区 */
 .login-logo {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
 }
 
 .logo-img {
@@ -284,6 +321,88 @@ onUnmounted(() => {
   object-fit: contain;
   margin: 0 auto 16px;
   border-radius: 16px;
+}
+
+/* 双模式大卡片选择器 */
+.mode-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.mode-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 2px solid var(--el-border-color-light);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  user-select: none;
+  background: var(--el-fill-color-light);
+}
+
+.mode-card:hover {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-fill-color-lighter);
+}
+
+.mode-card.active.beginner {
+  border-color: #2ead3e;
+  background: linear-gradient(135deg, rgba(46, 173, 62, 0.08) 0%, rgba(8, 91, 156, 0.05) 100%);
+  box-shadow: 0 0 0 3px rgba(46, 173, 62, 0.15);
+}
+
+.mode-card.active.expert {
+  border-color: #085B9C;
+  background: linear-gradient(135deg, rgba(8, 91, 156, 0.08) 0%, rgba(46, 173, 62, 0.05) 100%);
+  box-shadow: 0 0 0 3px rgba(8, 91, 156, 0.15);
+}
+
+.mode-card-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.mode-card-content {
+  flex: 1;
+}
+
+.mode-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  margin-bottom: 2px;
+}
+
+.mode-card-desc {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+.mode-card-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.mode-card.active.beginner .mode-card-check {
+  background: #2ead3e;
+}
+
+.mode-card.active.expert .mode-card-check {
+  background: #085B9C;
 }
 
 .logo-title {

@@ -32,8 +32,12 @@ use([
 
 import App from './App.vue'
 import router from './router'
+import { registerModeDirective } from '@/directives/mode'
 
 const app = createApp(App)
+
+// 注册 v-mode 自定义指令（双模式控制）
+registerModeDirective(app)
 
 // 注册所有 Element Plus 图标（全局可用）
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {

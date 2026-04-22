@@ -8,7 +8,7 @@
       </div>
       <div class="page-header-right">
         <el-button @click="handleScanBarcode">
-          <el-icon><Scan /></el-icon>
+          <el-icon><FullScreen /></el-icon>
           扫码上货
         </el-button>
         <el-button @click="handlePreview">
@@ -22,7 +22,25 @@
       </div>
     </div>
 
-    <!-- 主内容区：左侧商品列表 + 右侧编辑面板 -->
+    <!-- 三步工作流指示器 -->
+    <div class="workflow-bar">
+      <div class="workflow-step done">
+        <div class="step-num">1</div>
+        <div class="step-label">采集货源<br/><small>1688/多多上货等</small></div>
+      </div>
+      <div class="workflow-arrow">→</div>
+      <div class="workflow-step active">
+        <div class="step-num">2</div>
+        <div class="step-label">拖拽上货<br/><small>选择目标平台</small></div>
+      </div>
+      <div class="workflow-arrow">→</div>
+      <div class="workflow-step">
+        <div class="step-num">3</div>
+        <div class="step-label">确认发布<br/><small>AI合规检测</small></div>
+      </div>
+    </div>
+
+    <!-- 主内容区：左侧商品列表 + 右侧拖拽上货区 -->
     <div class="listing-layout">
       <!-- 左侧：待上货商品列表 -->
       <div class="listing-left">
@@ -48,6 +66,9 @@
             :key="item.id"
             class="goods-card"
             :class="{ active: currentGoods?.id === item.id }"
+            draggable="true"
+            @dragstart="onDragStartGoods($event, item)"
+            @dragend="onDragEndGoods"
             @click="selectGoods(item)"
           >
             <el-image :src="item.images?.[0]" fit="cover" class="goods-thumb">
@@ -73,71 +94,105 @@
         </div>
       </div>
 
-      <!-- 右侧：编辑面板 -->
-      <div class="listing-right">
-        <!-- 未选中商品时的提示 -->
-        <div v-if="!currentGoods" class="empty-panel">
-          <el-icon :size="48" color="#d0d0d0"><Goods /></el-icon>
-          <p>请从左侧选择一个商品进行编辑</p>
-        </div>
-
-        <!-- 已选中商品：编辑表单 -->
-        <div v-else class="edit-panel">
-          <!-- 基本信息 -->
-          <div class="edit-section">
-            <div class="section-title">
-              <el-icon><InfoFilled /></el-icon>
-              基本信息
+      <!-- 右侧：拖拽上货主区 -->
+      <div
+        class="listing-right"
+        @dragover.prevent="onDragOverRight"
+        @drop="onDropToPlatform($event)"
+        :class="{ 'drop-active': isDraggingGoods }"
+      >
+        <!-- 拖拽提示遮罩 -->
+        <Transition name="fade">
+          <div v-if="isDraggingGoods" class="drop-overlay">
+            <div class="drop-hint-content">
+              <el-icon class="drop-arrow-anim"><Bottom /></el-icon>
+              <p class="drop-hint-title">松开鼠标即可上货到 <strong>{{ dragOverPlatform || '选中的平台' }}</strong></p>
+              <p class="drop-hint-sub">AI将自动检测标题/图片/价格，适配平台规则</p>
             </div>
-            <el-form :model="editForm" label-width="80px" size="small">
-              <el-form-item label="商品名称">
-                <el-input v-model="editForm.name" placeholder="商品名称（可手动填写或由AI生成后填入）" />
-              </el-form-item>
-              <el-form-item label="商品描述">
-                <el-input
-                  v-model="editForm.description"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="商品描述（可手动填写或由AI生成后填入）"
-                  show-word-limit
-                />
-              </el-form-item>
-              <el-form-item label="SKU编号">
-                <el-input v-model="editForm.sku_code" placeholder="留空自动生成" />
-              </el-form-item>
-              <el-form-item label="商品条码">
-                <div style="display:flex;gap:8px;align-items:center">
-                  <el-input
-                    v-model="editForm.barcode"
-                    placeholder="扫描枪录入或手动填写"
-                    style="flex:1"
-                    @keyup.enter="handleBarcodeScan(editForm.barcode)"
-                  />
-                  <el-button @click="handleScanBarcode">
-                    <el-icon><Scan /></el-icon>
-                    扫码
-                  </el-button>
-                </div>
-              </el-form-item>
-              <el-row :gutter="12">
-                <el-col :span="12">
-                  <el-form-item label="成本价">
-                    <el-input-number v-model="editForm.cost" :min="0" :precision="2" style="width: 100%" />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="售价">
-                    <el-input-number v-model="editForm.price" :min="0" :precision="2" style="width: 100%" />
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-form-item label="来源链接">
-                <el-input v-model="editForm.source_url" placeholder="原始商品链接" />
-              </el-form-item>
-            </el-form>
+          </div>
+        </Transition>
+
+        <!-- 平台大图标上货区（按市场分区） -->
+        <div class="platform-drop-section">
+          <div class="section-label">
+            <el-icon><Shop /></el-icon>
+            选择目标平台（拖拽商品到图标上，或点击选择）
           </div>
 
-          <!-- 图片管理 -->
+          <!-- 分组展示平台 -->
+          <div
+            v-for="group in PLATFORM_GROUPS"
+            :key="group.label"
+            class="platform-group"
+          >
+            <div class="group-label">{{ group.label }}</div>
+            <div class="platform-icon-grid">
+              <div
+                v-for="p in group.platforms"
+                :key="p.id"
+                :class="['platform-drop-card', {
+                  'is-active': dragOverPlatform === p.id,
+                  'has-selection': selectedForListing?.platformId === p.id
+                }]"
+                :style="{ '--pcolor': p.color }"
+                @dragover.prevent="onDragOverPlatform(p.id)"
+                @dragleave="onDragLeavePlatform(p.id)"
+                @drop.prevent="onDropOnPlatform($event, p.id)"
+                @click="onClickPlatform(p)"
+              >
+                <div class="p-icon">
+                  <img :src="getPlatformIcon(p.id)" class="p-img" />
+                </div>
+                <div class="p-name">{{ p.name }}</div>
+                <div v-if="dragOverPlatform === p.id" class="p-drop-hint">
+                  <el-icon><Upload /></el-icon>
+                  放开上货
+                </div>
+                <div v-else-if="selectedForListing?.platformId === p.id" class="p-selected-badge">
+                  <el-icon><Check /></el-icon>
+                  已选
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 已选商品预览（拖拽后显示） -->
+        <div v-if="selectedForListing" class="selected-goods-preview">
+          <div class="preview-label">
+            <el-icon><Goods /></el-icon>
+            已选商品
+            <el-tag type="primary" size="small">{{ selectedForListing.name }}</el-tag>
+          </div>
+          <div class="preview-actions">
+            <el-button type="primary" size="large" @click="confirmListing">
+              <el-icon><Upload /></el-icon>
+              确认上货至 {{ platforms.find(p => p.id === selectedForListing?.platformId)?.name }}
+            </el-button>
+            <el-button size="large" @click="selectedForListing = null">
+              取消
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 快捷操作区 -->
+        <div v-else class="quick-actions">
+          <div class="qa-title">快捷操作</div>
+          <div class="qa-buttons">
+            <el-button type="primary" size="large" @click="openBatchSelect">
+              <el-icon><Rank /></el-icon>
+              批量选择上货
+            </el-button>
+            <el-button size="large" @click="handleScanBarcode">
+              <el-icon><FullScreen /></el-icon>
+              扫码上货
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 编辑面板 -->
+        <div class="edit-panel">
+        <!-- 图片管理 -->
           <div class="edit-section">
             <div class="section-title">
               <el-icon><Picture /></el-icon>
@@ -407,8 +462,8 @@
                 :class="{ selected: editForm.targetPlatforms.includes(p.id) }"
                 @click="togglePlatform(p.id)"
               >
-                <div class="platform-icon" :style="{ background: p.color }">
-                  <el-icon><component :is="p.icon" /></el-icon>
+                <div class="platform-icon">
+                  <img :src="getPlatformIcon(p.id)" class="p-img" />
                 </div>
                 <div class="platform-name">{{ p.name }}</div>
                 <div v-if="editForm.targetPlatforms.includes(p.id)" class="platform-check">
@@ -496,7 +551,7 @@
     <el-dialog v-model="scanVisible" title="扫码上货" width="440px" destroy-on-close>
       <div class="scan-dialog-content">
         <div class="scan-placeholder">
-          <el-icon :size="64" color="#d0d0d0"><Scan /></el-icon>
+          <el-icon :size="64" color="#d0d0d0"><FullScreen /></el-icon>
           <p class="scan-tip">打开摄像头扫描商品条码</p>
           <p class="scan-desc">扫描成功后自动匹配商品库，找到商品后直接进入上货编辑</p>
         </div>
@@ -525,7 +580,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { FullScreen } from '@element-plus/icons-vue'
 import { generateTitle, generateDescription, refineDescription, generateFeatures, generateImage, editImage } from '@/api/ai'
+import { getPlatformIcon } from '@/utils/platformIcons'
 
 // ==================== Mock 数据 ====================
 const mockGoods = [
@@ -577,14 +634,48 @@ const mockGoods = [
 ]
 
 // ==================== 平台配置 ====================
-const platforms = [
-  { id: 'tiktok', name: 'TikTok Shop', color: '#00f2ea', icon: 'Shop' },
-  { id: 'amazon', name: 'Amazon', color: '#ff9900', icon: 'Goods' },
-  { id: 'ebay', name: 'eBay', color: '#e53238', icon: 'Shop' },
-  { id: 'shopee', name: 'Shopee', color: '#ee4d2d', icon: 'Goods' },
-  { id: 'lazada', name: 'Lazada', color: '#f57d20', icon: 'Shop' },
-  { id: 'aliexpress', name: 'AliExpress', color: '#ff4747', icon: 'Goods' },
+// 按市场分区：东南亚 / 欧美 / 新兴 / 社交电商 / 其他
+const PLATFORM_GROUPS = [
+  {
+    label: '🌏 东南亚',
+    platforms: [
+      { id: 'shopee',  name: 'Shopee',   color: '#ee4d2d' },
+      { id: 'lazada',  name: 'Lazada',    color: '#0b94d5' },
+    ],
+  },
+  {
+    label: '🇺🇸 欧美',
+    platforms: [
+      { id: 'amazon',  name: 'Amazon',    color: '#ff9900' },
+      { id: 'ebay',    name: 'eBay',      color: '#e53238' },
+      { id: 'wish',    name: 'Wish',      color: '#2a80c4' },
+    ],
+  },
+  {
+    label: '🚀 新兴市场',
+    platforms: [
+      { id: 'temu',    name: 'Temu',      color: '#ff6b00' },
+      { id: 'shein',   name: 'SHEIN',      color: '#e5004c' },
+      { id: 'ozon',    name: 'Ozon',      color: '#005bff' },
+    ],
+  },
+  {
+    label: '📱 社交电商',
+    platforms: [
+      { id: 'tiktok',  name: 'TikTok Shop', color: '#00f2ea' },
+    ],
+  },
+  {
+    label: '🌐 其他',
+    platforms: [
+      { id: 'aliexpress', name: 'AliExpress', color: '#ff4747' },
+      { id: 'mercado',    name: 'Mercado',    color: '#ffe600' },
+    ],
+  },
 ]
+
+// 扁平平台列表（保持向后兼容）
+const platforms = PLATFORM_GROUPS.flatMap(g => g.platforms)
 
 // ==================== 状态 ====================
 const unpublishedList = ref([])
@@ -640,6 +731,99 @@ const calculatedPrice = computed(() => {
 })
 
 // ==================== 方法 ====================
+// ── 拖拽上货 ───────────────────────────────────────
+const isDraggingGoods = ref(false)
+const dragOverPlatform = ref(null)
+const selectedForListing = ref(null)
+
+
+function onDragStartGoods(e, item) {
+  isDraggingGoods.value = true
+  e.dataTransfer.effectAllowed = 'copy'
+  const payload = { type: 'goods', id: item.id, name: item.name }
+  // 同时设置两种格式，确保 drop 时能正确读取
+  try {
+    e.dataTransfer.setData('application/json', JSON.stringify(payload))
+  } catch {}
+  e.dataTransfer.setData('text/plain', JSON.stringify(payload))
+  currentGoods.value = item
+}
+
+function onDragEndGoods() {
+  isDraggingGoods.value = false
+  dragOverPlatform.value = null
+}
+
+function onDragOverRight(e) {
+  if (!isDraggingGoods.value) return
+  e.preventDefault()
+}
+
+function onDragLeaveRight() {
+  // 不清空 platform，让它保持悬停状态
+}
+
+function onDragOverPlatform(platformId) {
+  dragOverPlatform.value = platformId
+}
+
+function onDragLeavePlatform(platformId) {
+  if (dragOverPlatform.value === platformId) {
+    dragOverPlatform.value = null
+  }
+}
+
+function onDropOnPlatform(e, platformId) {
+  e.preventDefault()
+  // 同时尝试 application/json 和 text/plain 两种格式
+  let raw = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain')
+  let item = currentGoods.value
+  try { if (raw) item = JSON.parse(raw) } catch {}
+  if (!item) return
+
+  const platform = platforms.find(p => p.id === platformId)
+  selectedForListing.value = { ...item, platformId }
+  isDraggingGoods.value = false
+  dragOverPlatform.value = null
+  ElMessage.success(`已将「${item.name}」选中，准备上货至 ${platform?.name}`)
+}
+
+function onDropToPlatform(e) {
+  // 如果没有悬停在具体平台，提示用户选择目标平台
+  if (!dragOverPlatform.value) {
+    ElMessage.warning('请将商品拖拽到具体的目标平台图标上，或点击平台图标选择')
+    isDraggingGoods.value = false
+  }
+}
+
+function onClickPlatform(p) {
+  if (!currentGoods.value) {
+    ElMessage.warning('请先从左侧选择一个商品，再点击目标平台')
+    return
+  }
+  selectedForListing.value = { ...currentGoods.value, platformId: p.id }
+}
+
+function confirmListing() {
+  if (!selectedForListing.value) return
+  const platform = platforms.find(p => p.id === selectedForListing.value.platformId)
+  ElMessageBox.confirm(
+    `确认将「${selectedForListing.value.name}」上货至 ${platform?.name}？\n\nAI将自动检测标题/图片/价格，并适配平台合规规则。`,
+    '确认上货',
+    { confirmButtonText: '确认发布', cancelButtonText: '取消', type: 'success' }
+  ).then(() => {
+    // 标记为已发布
+    const idx = unpublishedList.value.findIndex(i => i.id === selectedForListing.value.id)
+    if (idx !== -1) unpublishedList.value[idx]._published = true
+    ElMessage.success(`「${selectedForListing.value.name}」已成功上货至 ${platform?.name}！`)
+    selectedForListing.value = null
+  }).catch(() => {})
+}
+
+function openBatchSelect() {
+  ElMessage.info('批量选择模式：勾选左侧商品后，点击「批量上货」按钮')
+}
+
 function filterList() {
   const kw = searchKeyword.value.toLowerCase()
   filteredList.value = unpublishedList.value.filter(item =>
@@ -1065,6 +1249,67 @@ async function handleEditImage(instruction, imgIdx) {
   gap: 18px;
 }
 
+/* ===== 拖拽引导Banner ===== */
+.drag-guide-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(8, 91, 156, 0.08) 0%, rgba(46, 173, 62, 0.08) 100%);
+  border: 2px dashed rgba(8, 91, 156, 0.3);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.drag-guide-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #085B9C 0%, #2ead3e 100%);
+  color: white;
+  flex-shrink: 0;
+  animation: floatUp 2s ease-in-out infinite;
+}
+
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.drag-guide-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.drag-guide-text strong {
+  color: #085B9C;
+  font-weight: 700;
+}
+
+.drag-guide-platforms {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.platform-chip {
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(8, 91, 156, 0.3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.platform-chip.more {
+  border-color: rgba(8, 91, 156, 0.3);
+  color: var(--el-text-color-secondary);
+}
+
 /* ===== 布局 ===== */
 .listing-layout {
   display: flex;
@@ -1072,6 +1317,75 @@ async function handleEditImage(instruction, imgIdx) {
   flex: 1;
   overflow: hidden;
   min-height: 0;
+}
+
+/* ===== 工作流指示条 ===== */
+.workflow-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 14px 24px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.workflow-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  transition: all 0.25s;
+}
+
+.workflow-step.active {
+  background: rgba(8, 91, 156, 0.08);
+}
+
+.workflow-step.done .step-num {
+  background: #2ead3e;
+  color: #fff;
+}
+
+.workflow-step.active .step-num {
+  background: #085B9C;
+  color: #fff;
+}
+
+.step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  line-height: 1.4;
+}
+
+.step-label small {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  font-weight: 400;
+}
+
+.workflow-arrow {
+  font-size: 18px;
+  color: var(--el-border-color);
+  padding: 0 4px;
 }
 
 /* ===== 左侧面板 ===== */
@@ -1176,16 +1490,235 @@ async function handleEditImage(instruction, imgIdx) {
   box-shadow: 0 2px 6px rgba(16,185,129,.4);
 }
 
-/* ===== 右侧编辑面板 ===== */
+/* ===== 右侧拖拽上货区 ===== */
 .listing-right {
   flex: 1;
   overflow-y: auto;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: var(--el-bg-color);
+  border: 2px dashed var(--el-border-color-light);
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow-xs);
+  position: relative;
+  transition: border-color 0.25s, background 0.25s;
 }
 
+.listing-right.drop-active {
+  border-color: var(--el-color-primary);
+  background: rgba(8, 91, 156, 0.03);
+}
+
+/* 拖拽遮罩 */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 91, 156, 0.82);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-lg);
+}
+
+.drop-hint-content {
+  text-align: center;
+  color: white;
+}
+
+.drop-hint-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 12px 0 8px;
+}
+
+.drop-hint-sub {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.drop-arrow-anim {
+  font-size: 52px;
+  color: #2ead3e;
+  animation: bounceDown 0.8s ease-in-out infinite;
+}
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+/* 平台上货区 */
+.platform-drop-section {
+  padding: 24px;
+  position: relative;
+  z-index: 101; /* 浮在遮罩层之上，保证拖拽到平台图标 */
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-text-color-regular);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 分组布局 */
+.platform-group {
+  margin-bottom: 20px;
+}
+
+.platform-group:last-child {
+  margin-bottom: 0;
+}
+
+.group-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+/* 平台大图标网格 */
+.platform-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 14px;
+}
+
+.platform-drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 8px;
+  background: var(--el-bg-color);
+  border: 2px solid var(--el-border-color-light);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  user-select: none;
+}
+
+.platform-drop-card:hover {
+  border-color: var(--pcolor, var(--el-color-primary));
+  background: var(--el-fill-color-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.platform-drop-card.is-active {
+  border-color: var(--pcolor, var(--el-color-primary));
+  background: color-mix(in srgb, var(--pcolor) 12%, white);
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pcolor) 25%, transparent);
+}
+
+.p-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: transparent; /* 透明底，SVG 自身带品牌色 */
+}
+.p-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+}
+
+.p-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  text-align: center;
+}
+
+.p-drop-hint {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--pcolor, var(--el-color-primary));
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.p-selected-badge {
+  background: #2ead3e;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+/* 已选商品预览 */
+.selected-goods-preview {
+  margin: 0 24px 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(8, 91, 156, 0.08) 0%, rgba(46, 173, 62, 0.08) 100%);
+  border: 2px solid rgba(8, 91, 156, 0.2);
+  border-radius: 14px;
+}
+
+.preview-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  margin-bottom: 14px;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.preview-actions .el-button {
+  flex: 1;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* 快捷操作区 */
+.quick-actions {
+  padding: 24px;
+  margin-top: 0;
+}
+
+.qa-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 12px;
+}
+
+.qa-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.qa-buttons .el-button {
+  flex: 1;
+  height: 44px;
+  font-size: 14px;
+}
+
+/* 空面板 */
 .empty-panel {
   height: 100%;
   display: flex;
@@ -1427,7 +1960,13 @@ async function handleEditImage(instruction, imgIdx) {
   width: 26px; height: 26px;
   border-radius: var(--r-sm);
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 13px; flex-shrink: 0;
+  overflow: hidden; flex-shrink: 0;
+  background: transparent; /* 透明底，SVG 自身带品牌色 */
+}
+.platform-icon .p-img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  padding: 2px;
 }
 .platform-name { font-size: 12.5px; color: var(--text-primary); font-weight: 500; }
 .platform-check {

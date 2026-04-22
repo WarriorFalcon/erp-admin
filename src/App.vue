@@ -24,7 +24,7 @@
         <div
           class="nav-item"
           :class="{ active: route.path === '/' }"
-          @click="router.push('/')"
+          @click="navigateTo('/')"
           :title="isCollapse ? '控制台' : ''"
         >
           <el-icon><Odometer /></el-icon>
@@ -33,57 +33,62 @@
 
         <!-- 商品 -->
         <div class="nav-section-label" v-if="!isCollapse">商品</div>
-        <div class="nav-item" :class="{ active: route.path === '/goods/collect' }" @click="router.push('/goods/collect')" :title="isCollapse ? '商品采集' : ''">
-          <el-icon><ShoppingCart /></el-icon>
-          <span v-if="!isCollapse">商品采集</span>
+        <div class="nav-item nav-item--highlight" :class="{ active: route.path === '/goods/onestop' }" @click="navigateTo('/goods/onestop')" :title="isCollapse ? '一站式采集上货' : ''">
+          <el-icon><MagicStick /></el-icon>
+          <span v-if="!isCollapse">一站式上货</span>
+          <span v-if="!isCollapse" class="nav-badge">NEW</span>
         </div>
-        <div class="nav-item" :class="{ active: route.path === '/goods/manage' }" @click="router.push('/goods/manage')" :title="isCollapse ? '商品管理' : ''">
-          <el-icon><Management /></el-icon>
-          <span v-if="!isCollapse">商品管理</span>
-        </div>
-        <div class="nav-item" :class="{ active: route.path === '/goods/listing' }" @click="router.push('/goods/listing')" :title="isCollapse ? '商品上货' : ''">
+        <div class="nav-item" :class="{ active: route.path === '/goods/listing' }" @click="navigateTo('/goods/listing')" :title="isCollapse ? '商品上货' : ''">
           <el-icon><Upload /></el-icon>
           <span v-if="!isCollapse">商品上货</span>
         </div>
-        <div class="nav-item" :class="{ active: route.path === '/goods/decision' }" @click="router.push('/goods/decision')" :title="isCollapse ? '选品决策' : ''">
-          <el-icon><DataAnalysis /></el-icon>
-          <span v-if="!isCollapse">选品决策</span>
-          <span v-if="!isCollapse" class="nav-badge">NEW</span>
+        <div class="nav-item" :class="{ active: route.path === '/goods/collect' }" @click="navigateTo('/goods/collect')" :title="isCollapse ? '商品采集' : ''">
+          <el-icon><ShoppingCart /></el-icon>
+          <span v-if="!isCollapse">商品采集</span>
+        </div>
+        <div class="nav-item" :class="{ active: route.path === '/goods/manage' }" @click="navigateTo('/goods/manage')" :title="isCollapse ? '商品管理' : ''">
+          <el-icon><Management /></el-icon>
+          <span v-if="!isCollapse">商品管理</span>
         </div>
 
         <!-- 运营 -->
         <div class="nav-section-label" v-if="!isCollapse">运营</div>
-        <div class="nav-item" :class="{ active: route.path === '/orders' }" @click="router.push('/orders')" :title="isCollapse ? '订单管理' : ''">
+        <div class="nav-item" :class="{ active: route.path === '/orders' }" @click="navigateTo('/orders')" :title="isCollapse ? '订单管理' : ''">
           <el-icon><List /></el-icon>
           <span v-if="!isCollapse">订单管理</span>
         </div>
-        <div class="nav-item" :class="{ active: route.path === '/inventory' }" @click="router.push('/inventory')" :title="isCollapse ? '库存管理' : ''">
+        <div class="nav-item" :class="{ active: route.path === '/inventory' }" @click="navigateTo('/inventory')" :title="isCollapse ? '库存管理' : ''">
           <el-icon><Box /></el-icon>
           <span v-if="!isCollapse">库存管理</span>
         </div>
-        <div class="nav-item" :class="{ active: route.path === '/logistics' }" @click="router.push('/logistics')" :title="isCollapse ? '物流追踪' : ''">
+        <div class="nav-item" :class="{ active: route.path === '/logistics' }" @click="navigateTo('/logistics')" :title="isCollapse ? '物流追踪' : ''">
           <el-icon><Van /></el-icon>
           <span v-if="!isCollapse">物流追踪</span>
         </div>
-        <div class="nav-item" :class="{ active: route.path === '/shop' }" @click="router.push('/shop')" :title="isCollapse ? '店铺管理' : ''">
+        <div class="nav-item" :class="{ active: route.path === '/shop' }" @click="navigateTo('/shop')" :title="isCollapse ? '店铺管理' : ''">
           <el-icon><Shop /></el-icon>
           <span v-if="!isCollapse">店铺管理</span>
         </div>
 
         <!-- 达人 -->
         <div class="nav-section-label" v-if="!isCollapse">达人</div>
-        <div class="nav-item" :class="{ active: route.path === '/kol' }" @click="router.push('/kol')" :title="isCollapse ? '达人检索' : ''">
+        <div class="nav-item" :class="{ active: route.path === '/kol' }" @click="navigateTo('/kol')" :title="isCollapse ? '达人检索' : ''">
           <el-icon><User /></el-icon>
           <span v-if="!isCollapse">达人检索</span>
           <span v-if="!isCollapse" class="nav-badge">NEW</span>
         </div>
-        <div class="nav-item" :class="{ active: route.path === '/reports' }" @click="router.push('/reports')" :title="isCollapse ? '数据报表' : ''">
+        <div class="nav-item" :class="{ active: route.path === '/reports' }" @click="navigateTo('/reports')" :title="isCollapse ? '数据报表' : ''">
           <el-icon><DataLine /></el-icon>
           <span v-if="!isCollapse">数据报表</span>
         </div>
 
         <!-- 待接入 -->
         <div class="nav-divider" />
+        <div class="nav-item" :class="{ active: route.path === '/plugins' }" @click="navigateTo('/plugins')" :title="isCollapse ? '插件市场' : ''">
+          <el-icon><Grid /></el-icon>
+          <span v-if="!isCollapse">插件市场</span>
+        </div>
+
         <div class="nav-item disabled" :title="isCollapse ? 'AI客服（待接入）' : ''">
           <el-icon><ChatDotRound /></el-icon>
           <span v-if="!isCollapse">AI 客服</span>
@@ -107,7 +112,7 @@
         <div class="topbar-left">
           <!-- 面包屑 -->
           <nav class="breadcrumb" aria-label="breadcrumb">
-            <span class="bc-home" @click="router.push('/')">首页</span>
+            <span class="bc-home" @click="navigateTo('/')">首页</span>
             <template v-if="currentPageMeta.parent">
               <span class="bc-sep">/</span>
               <span class="bc-item">{{ currentPageMeta.parent }}</span>
@@ -119,6 +124,14 @@
 
         <div class="topbar-right">
           <span class="env-chip" :class="envMode">{{ envTagText }}</span>
+
+          <!-- 双模式切换 -->
+          <el-tooltip :content="`当前：${appStore.modeLabel}，点击切换`" placement="bottom">
+            <div class="mode-switch" @click="toggleAppMode">
+              <el-icon><component :is="appStore.isExpert ? 'UserFilled' : 'Star'" /></el-icon>
+              <span>{{ appStore.modeLabel }}</span>
+            </div>
+          </el-tooltip>
 
           <el-dropdown trigger="click">
             <div class="user-btn">
@@ -150,15 +163,35 @@
     </div>
 
   </el-container>
+
+  <!-- 全局AI助手「小辽」：永远存在，不随路由切换销毁 -->
+  <AiAssistant v-if="!route.meta.hideLayout" mascot-src="/images/tiger.png" />
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import AiAssistant from '@/components/AiAssistant.vue'
+import { useScanner, setupGlobalScanner } from '@/composables/useScanner'
+import { useAuthStore } from '@/stores/useAuthStore'
+import { useAppStore } from '@/stores/useAppStore'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
+const appStore = useAppStore()
+
 const isCollapse = ref(false)
+
+/** 带错误捕获的导航，避免静默失败 */
+function navigateTo(path) {
+  console.log('[导航]', path, '→ 路由名:', route.name)
+  router.push(path).catch(err => {
+    console.error('[导航失败]', path, err)
+    ElMessage.error(`页面「${path}」暂时无法打开`)
+  })
+}
 
 const pageMetaMap = {
   '/':               { title: '控制台',     parent: '' },
@@ -166,6 +199,7 @@ const pageMetaMap = {
   '/goods/manage':   { title: '商品管理', parent: '商品模块' },
   '/goods/listing':  { title: '商品上货', parent: '商品模块' },
   '/goods/decision':  { title: '选品决策', parent: '商品模块' },
+  '/goods/onestop':   { title: '一站式采集上货', parent: '商品模块' },
   '/orders':         { title: '订单管理', parent: '' },
   '/inventory':      { title: '库存管理', parent: '' },
   '/logistics':      { title: '物流追踪', parent: '' },
@@ -181,12 +215,20 @@ const envTagText = import.meta.env.MODE === 'production' ? '生产环境' : '开
 
 // 退出登录
 function handleLogout() {
-  // 清除token
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  // 跳转到登录页
+  authStore.logout()
   router.push('/login')
 }
+
+// 切换双模式
+function toggleAppMode() {
+  appStore.toggleMode()
+}
+
+// ── 全局扫码枪初始化 ──────────────────────────────────────
+// App.vue 启动时初始化一次即可，不随路由销毁
+onMounted(() => {
+  setupGlobalScanner()
+})
 </script>
 
 <style scoped>
@@ -294,6 +336,30 @@ function handleLogout() {
   font-weight: 600;
 }
 .nav-item.active .el-icon { color: var(--brand); }
+
+/* 一站式上货导航项高亮（纯色无渐变，outline 避免撑盒子） */
+.nav-item--highlight {
+  background: rgba(8,91,156,.06);
+  overflow: visible; /* 保证 ::before 不被裁切 */
+}
+.nav-item--highlight:hover {
+  background: rgba(8,91,156,.1);
+}
+.nav-item--highlight.active {
+  background: rgba(8,91,156,.12);
+  outline: 2px solid rgba(8,91,156,.3);
+  outline-offset: -2px; /* 不占额外空间 */
+  box-shadow: 0 0 0 1px rgba(8,91,156,.15); /* 外发光 */
+}
+.nav-item--highlight.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 60%;
+  background: var(--brand);
+  border-radius: 0 2px 2px 0;
+}
+
 .nav-item.disabled {
   opacity: .5;
   cursor: not-allowed;
@@ -490,6 +556,28 @@ function handleLogout() {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* 模式切换按钮 */
+.mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  border: 1px solid var(--el-color-primary-light-7);
+  transition: all var(--dur) var(--ease);
+  user-select: none;
+}
+
+.mode-switch:hover {
+  background: var(--el-color-primary-light-8);
+}
+
 
 /* 主内容 */
 .page-main {

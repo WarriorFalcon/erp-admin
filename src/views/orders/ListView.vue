@@ -104,7 +104,7 @@
         <el-table-column label="平台" width="110" align="center">
           <template #default="{ row }">
             <el-tag class="platform-tag" :style="{ background: getPlatformColor(row.platform) + '18', color: getPlatformColor(row.platform) }">
-              <span class="platform-icon">{{ getPlatformIcon(row.platform) }}</span>
+              <img :src="getPlatformIcon(row.platform)" class="platform-img" :alt="row.platform" />
               {{ row.platform }}
             </el-tag>
           </template>
@@ -192,7 +192,7 @@
             <div class="detail-item">
               <span class="detail-label">平台</span>
               <el-tag :style="{ background: getPlatformColor(currentOrder.platform) + '18', color: getPlatformColor(currentOrder.platform) }">
-                {{ getPlatformIcon(currentOrder.platform) }} {{ currentOrder.platform }}
+                <img :src="getPlatformIcon(currentOrder.platform)" class="platform-img" :alt="currentOrder.platform" /> {{ currentOrder.platform }}
               </el-tag>
             </div>
             <div class="detail-item">
@@ -318,16 +318,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Clock, Box, WarningFilled, CircleCheck, Download, Search, Document, User, Goods, Van, ChatLineRound } from '@element-plus/icons-vue'
 import { getOrderList, getOrderStatusCounts, getOrderDetail } from '@/api/order'
-
-// 平台配色
-function getPlatformColor(platform) {
-  const colors = { TikTok: '#FF0050', Amazon: '#FF9900', Shopee: '#EE4D2D' }
-  return colors[platform] || '#666'
-}
-function getPlatformIcon(platform) {
-  const icons = { TikTok: '🎵', Amazon: '📦', Shopee: '🛒' }
-  return icons[platform] || '🏪'
-}
+import { getPlatformIcon, getPlatformColor } from '@/utils/platformIcons'
 
 // ==================== 状态 ====================
 const loading = ref(false)
@@ -576,7 +567,13 @@ onMounted(() => {
   border-radius: 6px;
   padding: 3px 10px;
 }
-.platform-icon { margin-right: 4px; }
+.platform-img {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: middle;
+  object-fit: contain;
+}
 .buyer-info { display: flex; flex-direction: column; gap: 2px; }
 .buyer-name { font-size: 14px; color: var(--text-primary); }
 .buyer-phone { font-size: 12px; color: var(--text-muted); }

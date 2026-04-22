@@ -249,6 +249,7 @@ import {
   MapLocation, Van, CircleCheck, Box, TrendCharts, Goods, Close
 } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
+import { getPlatformIcon } from '@/utils/platformIcons'
 
 // ==================== 统计数据 ====================
 const stats = reactive({
@@ -296,14 +297,7 @@ function maskCustomer(name) {
   return name.slice(0, 1) + '***' + name.slice(-1)
 }
 
-function getPlatformIcon(platform) {
-  const icons = {
-    tiktok: 'https://sf16-sg.tiktokcdn.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png',
-    amazon: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg',
-    shopee: 'https://deo.shopeemobile.com/shopee/shopee-pcmall-live-sg/assets/icon_favicon_1_96.png'
-  }
-  return icons[platform] || ''
-}
+
 
 // ==================== 图表引用 ====================
 const salesChartRef = ref(null)
