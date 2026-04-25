@@ -25,3 +25,48 @@ export function fetchGoodsDetail(id) {
   if (USE_MOCK) return Promise.resolve({ data: {} })
   return request.get(`/api/v1/goods/detail/${id}/`)
 }
+
+/** 上架商品到目标平台
+ * POST /api/v1/goods/listing/
+ * @param {Object} payload - { goods_id, platform, title, description, price, images }
+ */
+export function listingGoods(payload) {
+  if (USE_MOCK) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          code: 0,
+          message: '上架成功',
+          data: {
+            platform: payload.platform,
+            item_id: `item_${Date.now()}`,
+            url: `https://${payload.platform}.com/item/${Date.now()}`,
+            status: 'published',
+          },
+        })
+      }, 1200)
+    })
+  }
+  return request.post('/api/v1/goods/listing/', payload)
+}
+
+/** 批量上架
+ * POST /api/v1/goods/listing/batch/
+ */
+export function listingGoodsBatch(payload) {
+  if (USE_MOCK) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          code: 0,
+          message: '批量上架任务已创建',
+          data: {
+            task_id: `batch_${Date.now()}`,
+            total: payload.items?.length || 0,
+          },
+        })
+      }, 800)
+    })
+  }
+  return request.post('/api/v1/goods/listing/batch/', payload)
+}

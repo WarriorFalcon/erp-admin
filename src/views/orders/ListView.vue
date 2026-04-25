@@ -50,30 +50,31 @@
     <div class="filter-card">
       <el-form :inline="true" :model="filterForm">
         <el-form-item label="关键词">
-          <el-input v-model="filterForm.keyword" placeholder="订单号/买家/SKU" clearable @keyup.enter="loadData" style="width:180px" />
+          <el-input id="orderKeyword" v-model="filterForm.keyword" placeholder="订单号/买家/SKU" clearable @keyup.enter="loadData" style="width:180px" />
         </el-form-item>
         <el-form-item label="平台">
-          <el-select v-model="filterForm.platform" placeholder="全部平台" clearable style="width:140px">
+          <el-select id="orderPlatform" v-model="filterForm.platform" placeholder="全部平台" clearable style="width:140px">
             <el-option label="全部" value="" />
             <el-option label="TikTok" value="TikTok">
-              <span style="display:flex;align-items:center;gap:4px"><span>🎵</span> TikTok</span>
+              <span style="display:flex;align-items:center;gap:4px"><img src="/platform-icons/tiktok.svg" style="width:16px;height:16px;object-fit:contain" /> TikTok</span>
             </el-option>
             <el-option label="Amazon" value="Amazon">
-              <span style="display:flex;align-items:center;gap:4px"><span>📦</span> Amazon</span>
+              <span style="display:flex;align-items:center;gap:4px"><img src="/platform-icons/amazon.svg" style="width:16px;height:16px;object-fit:contain" /> Amazon</span>
             </el-option>
             <el-option label="Shopee" value="Shopee">
-              <span style="display:flex;align-items:center;gap:4px"><span>🛒</span> Shopee</span>
+              <span style="display:flex;align-items:center;gap:4px"><img src="/platform-icons/shopee.svg" style="width:16px;height:16px;object-fit:contain" /> Shopee</span>
             </el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="时间类型">
-          <el-select v-model="filterForm.timeType" style="width:120px">
+          <el-select id="orderTimeType" v-model="filterForm.timeType" style="width:120px">
             <el-option label="下单时间" value="order" />
             <el-option label="付款时间" value="paid" />
           </el-select>
         </el-form-item>
         <el-form-item label="时间范围">
           <el-date-picker
+            id="orderDateRange"
             v-model="filterForm.dateRange"
             type="daterange"
             range-separator="至"

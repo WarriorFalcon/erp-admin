@@ -100,7 +100,7 @@
       <!-- 底部 -->
       <div class="login-footer">
         <span class="footer-text">还没有账号？</span>
-        <el-link type="primary" :underline="false">联系管理员开通</el-link>
+        <el-link type="primary" :underline="'never'">联系管理员开通</el-link>
       </div>
     </div>
 
@@ -332,6 +332,7 @@ onUnmounted(() => {
 
 .mode-card {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -343,6 +344,7 @@ onUnmounted(() => {
   position: relative;
   user-select: none;
   background: var(--el-fill-color-light);
+  overflow: hidden;
 }
 
 .mode-card:hover {
@@ -381,7 +383,9 @@ onUnmounted(() => {
 .mode-card-desc {
   font-size: 11px;
   color: var(--el-text-color-secondary);
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.4;
 }
 
 .mode-card-check {

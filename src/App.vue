@@ -31,68 +31,44 @@
           <span v-if="!isCollapse">控制台</span>
         </div>
 
-        <!-- 商品 -->
-        <div class="nav-section-label" v-if="!isCollapse">商品</div>
+        <!-- 核心功能（战略优先） -->
+        <div class="nav-section-label" v-if="!isCollapse">核心功能</div>
+        <!-- 一站式上货：杀手锏功能，放最前面 -->
         <div class="nav-item nav-item--highlight" :class="{ active: route.path === '/goods/onestop' }" @click="navigateTo('/goods/onestop')" :title="isCollapse ? '一站式采集上货' : ''">
           <el-icon><MagicStick /></el-icon>
           <span v-if="!isCollapse">一站式上货</span>
           <span v-if="!isCollapse" class="nav-badge">NEW</span>
         </div>
-        <div class="nav-item" :class="{ active: route.path === '/goods/listing' }" @click="navigateTo('/goods/listing')" :title="isCollapse ? '商品上货' : ''">
-          <el-icon><Upload /></el-icon>
-          <span v-if="!isCollapse">商品上货</span>
-        </div>
-        <div class="nav-item" :class="{ active: route.path === '/goods/collect' }" @click="navigateTo('/goods/collect')" :title="isCollapse ? '商品采集' : ''">
-          <el-icon><ShoppingCart /></el-icon>
-          <span v-if="!isCollapse">商品采集</span>
-        </div>
-        <div class="nav-item" :class="{ active: route.path === '/goods/manage' }" @click="navigateTo('/goods/manage')" :title="isCollapse ? '商品管理' : ''">
-          <el-icon><Management /></el-icon>
-          <span v-if="!isCollapse">商品管理</span>
-        </div>
 
-        <!-- 运营 -->
-        <div class="nav-section-label" v-if="!isCollapse">运营</div>
-        <div class="nav-item" :class="{ active: route.path === '/orders' }" @click="navigateTo('/orders')" :title="isCollapse ? '订单管理' : ''">
-          <el-icon><List /></el-icon>
-          <span v-if="!isCollapse">订单管理</span>
-        </div>
-        <div class="nav-item" :class="{ active: route.path === '/inventory' }" @click="navigateTo('/inventory')" :title="isCollapse ? '库存管理' : ''">
-          <el-icon><Box /></el-icon>
-          <span v-if="!isCollapse">库存管理</span>
-        </div>
-        <div class="nav-item" :class="{ active: route.path === '/logistics' }" @click="navigateTo('/logistics')" :title="isCollapse ? '物流追踪' : ''">
-          <el-icon><Van /></el-icon>
-          <span v-if="!isCollapse">物流追踪</span>
-        </div>
+        <!-- 店铺管理 -->
         <div class="nav-item" :class="{ active: route.path === '/shop' }" @click="navigateTo('/shop')" :title="isCollapse ? '店铺管理' : ''">
           <el-icon><Shop /></el-icon>
           <span v-if="!isCollapse">店铺管理</span>
         </div>
 
-        <!-- 达人 -->
-        <div class="nav-section-label" v-if="!isCollapse">达人</div>
-        <div class="nav-item" :class="{ active: route.path === '/kol' }" @click="navigateTo('/kol')" :title="isCollapse ? '达人检索' : ''">
-          <el-icon><User /></el-icon>
-          <span v-if="!isCollapse">达人检索</span>
-          <span v-if="!isCollapse" class="nav-badge">NEW</span>
-        </div>
+        <!-- 数据报表 -->
         <div class="nav-item" :class="{ active: route.path === '/reports' }" @click="navigateTo('/reports')" :title="isCollapse ? '数据报表' : ''">
           <el-icon><DataLine /></el-icon>
           <span v-if="!isCollapse">数据报表</span>
         </div>
 
-        <!-- 待接入 -->
-        <div class="nav-divider" />
-        <div class="nav-item" :class="{ active: route.path === '/plugins' }" @click="navigateTo('/plugins')" :title="isCollapse ? '插件市场' : ''">
-          <el-icon><Grid /></el-icon>
-          <span v-if="!isCollapse">插件市场</span>
+        <!-- 运营工具（收起） -->
+        <div class="nav-divider" v-if="!isCollapse" />
+        <div class="nav-section-label nav-sub-section" v-if="!isCollapse">运营</div>
+        <!-- 订单管理 -->
+        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/orders' }" @click="navigateTo('/orders')" :title="isCollapse ? '订单管理' : ''">
+          <el-icon><List /></el-icon>
+          <span v-if="!isCollapse">订单管理</span>
         </div>
-
-        <div class="nav-item disabled" :title="isCollapse ? 'AI客服（待接入）' : ''">
-          <el-icon><ChatDotRound /></el-icon>
-          <span v-if="!isCollapse">AI 客服</span>
-          <span v-if="!isCollapse" class="nav-badge soon">待接入</span>
+        <!-- 库存管理 -->
+        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/inventory' }" @click="navigateTo('/inventory')" :title="isCollapse ? '库存管理' : ''">
+          <el-icon><Box /></el-icon>
+          <span v-if="!isCollapse">库存管理</span>
+        </div>
+        <!-- 物流追踪 -->
+        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/logistics' }" @click="navigateTo('/logistics')" :title="isCollapse ? '物流追踪' : ''">
+          <el-icon><Van /></el-icon>
+          <span v-if="!isCollapse">物流追踪</span>
         </div>
 
       </nav>
@@ -195,17 +171,18 @@ function navigateTo(path) {
 
 const pageMetaMap = {
   '/':               { title: '控制台',     parent: '' },
-  '/goods/collect':  { title: '商品采集', parent: '商品模块' },
-  '/goods/manage':   { title: '商品管理', parent: '商品模块' },
-  '/goods/listing':  { title: '商品上货', parent: '商品模块' },
-  '/goods/decision':  { title: '选品决策', parent: '商品模块' },
-  '/goods/onestop':   { title: '一站式采集上货', parent: '商品模块' },
-  '/orders':         { title: '订单管理', parent: '' },
-  '/inventory':      { title: '库存管理', parent: '' },
-  '/logistics':      { title: '物流追踪', parent: '' },
-  '/shop':           { title: '店铺管理', parent: '' },
-  '/kol':            { title: '达人检索', parent: '' },
-  '/reports':        { title: '数据报表', parent: '' },
+  '/goods/onestop':  { title: '一站式采集上货', parent: '' },
+  '/shop':           { title: '店铺管理',   parent: '' },
+  '/reports':        { title: '数据报表',   parent: '' },
+  '/orders':         { title: '订单管理',   parent: '' },
+  '/inventory':      { title: '库存管理',   parent: '' },
+  '/logistics':      { title: '物流追踪',   parent: '' },
+  // 隐藏页面（暂不使用）
+  '/goods/collect':  { title: '商品采集',   parent: '' },
+  '/goods/manage':   { title: '商品管理',   parent: '' },
+  '/goods/listing':  { title: '商品上货',   parent: '' },
+  '/goods/decision': { title: '选品决策',   parent: '' },
+  '/kol':            { title: '达人检索',   parent: '' },
 }
 
 const currentPageMeta = computed(() => pageMetaMap[route.path] || { title: '', parent: '' })
@@ -392,6 +369,24 @@ onMounted(() => {
   height: 1px;
   background: var(--border);
   margin: 6px 4px;
+}
+
+/* 精简后的二级菜单（运营工具） */
+.nav-sub-section {
+  font-size: 9.5px !important;
+  padding: 10px 8px 2px !important;
+  color: var(--aside-section) !important;
+  opacity: 0.7;
+}
+
+.nav-sub-item {
+  height: 34px !important;
+  font-size: 13px !important;
+  padding-left: 8px !important;
+}
+
+.nav-sub-item .el-icon {
+  font-size: 14px !important;
 }
 
 /* 折叠按钮 */

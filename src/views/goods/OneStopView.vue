@@ -4,20 +4,27 @@
     <div class="page-header">
       <div class="page-header-left">
         <h1 class="page-title">一站式采集上货</h1>
-        <p class="page-desc">采集+合规+优化+上架，一个动作全闭环</p>
+        <!-- 小白模式引导标语 -->
+        <p v-if="appStore.isBeginner" class="page-desc page-desc--beginner">
+          <el-icon><Lightning /></el-icon>
+          粘贴链接 → AI自动完成全部流程 → 确认上架
+        </p>
+        <!-- 资深模式副标题 -->
+        <p v-else class="page-desc">采集+合规+优化+上架，一个动作全闭环</p>
       </div>
       <div class="page-header-right">
         <el-tag type="success" effect="plain" size="small">Beta</el-tag>
-        <el-button @click="showBatchPanel = !showBatchPanel">
+        <!-- 批量模式：仅资深模式可见 -->
+        <el-button v-mode="'expert'" @click="showBatchPanel = !showBatchPanel">
           <el-icon><Rank /></el-icon>
           批量模式
         </el-button>
       </div>
     </div>
 
-    <!-- ====== 批量模式面板 ====== -->
+    <!-- ====== 批量模式面板（资深专属）====== -->
     <Transition name="slide-down">
-      <el-card v-if="showBatchPanel" class="batch-panel">
+      <el-card v-if="showBatchPanel" class="batch-panel" v-mode="'expert'">
         <template #header>
           <div class="card-header">
             <div class="card-header-left">
@@ -39,6 +46,7 @@
         <!-- 链接导入 -->
         <div v-if="batchImportType === 'links'" class="batch-links-input">
           <el-input
+            id="batchLinksText"
             v-model="batchLinksText"
             type="textarea"
             :rows="5"
@@ -101,10 +109,10 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="batchRules.pricingType === 'markup'" label="加价金额">
-              <el-input-number v-model="batchRules.markupAmount" :min="0" :precision="2" />
+              <el-input-number id="batchMarkupAmount" v-model="batchRules.markupAmount" :min="0" :precision="2" />
             </el-form-item>
             <el-form-item v-else label="加价倍率">
-              <el-input-number v-model="batchRules.markupRate" :min="1" :precision="2" />
+              <el-input-number id="batchMarkupRate" v-model="batchRules.markupRate" :min="1" :precision="2" />
             </el-form-item>
             <el-form-item label="店铺">
               <el-select v-model="batchRules.shopId" placeholder="选择店铺" style="width: 180px">
@@ -140,164 +148,339 @@
     </Transition>
 
     <!-- ====== 小白极简模式 ====== -->
-    <div class="onestop-layout">
-      <!-- 左侧：核心操作区 -->
-      <div class="onestop-left">
+      <div class="onestop-layout">
 
-        <!-- 步骤进度条 -->
-        <div class="step-flow">
-          <div
-            v-for="(step, idx) in flowSteps"
-            :key="step.id"
-            :class="['flow-step', {
-              'is-done': currentStep > idx,
-              'is-active': currentStep === idx,
-              'is-pending': currentStep < idx,
-            }]"
-          >
-            <div class="flow-step-icon">
-              <el-icon v-if="currentStep > idx"><Check /></el-icon>
-              <el-icon v-else-if="currentStep === idx && step.running" class="is-loading"><Loading /></el-icon>
-              <span v-else>{{ idx + 1 }}</span>
+      <!-- ========== 小白工作流状态条（始终可见）============= -->
+        <div v-if="appStore.isBeginner" class="workflow-bar">
+          <!-- 当前阶段大标语 -->
+          <div class="workflow-bar-header">
+            <div class="wb-phase-label">
+              <span class="wb-phase-num">第 {{ workflowPhase.num }} 步</span>
+              <span class="wb-phase-name">{{ workflowPhase.label }}</span>
             </div>
-            <div class="flow-step-info">
-              <div class="flow-step-name">{{ step.name }}</div>
-              <div class="flow-step-desc">{{ step.desc }}</div>
-            </div>
-            <div v-if="idx < flowSteps.length - 1" class="flow-connector">
-              <div :class="['flow-line', { done: currentStep > idx }]"></div>
-            </div>
+            <div class="wb-hint">{{ workflowPhase.hint }}</div>
           </div>
-        </div>
-
-        <!-- 链接输入区 -->
-        <el-card class="input-card">
-          <template #header>
-            <div class="card-header">
-              <div class="card-header-left">
-                <el-icon><Link /></el-icon>
-                <span>第一步：粘贴货源链接</span>
-              </div>
-              <el-tag size="small" effect="plain">仅需2步完成上货</el-tag>
-            </div>
-          </template>
-
-          <el-input
-            v-model="sourceUrl"
-            type="textarea"
-            :rows="3"
-            :disabled="currentStep > 0"
-            placeholder="粘贴 1688 / 淘宝 / 拼多多 商品链接，如：&#10;https://detail.1688.com/offer/629584739214.html"
-            @keyup.ctrl.enter="startOneStop"
-          />
-          <div class="url-hint">
-            <span>支持平台：</span>
-            <el-tag size="small" effect="plain">1688</el-tag>
-            <el-tag size="small" effect="plain">淘宝</el-tag>
-            <el-tag size="small" effect="plain" type="info">拼多多</el-tag>
-            <el-tag size="small" effect="plain" type="info">天猫</el-tag>
-          </div>
-        </el-card>
-
-        <!-- 目标平台选择 -->
-        <el-card class="target-card">
-          <template #header>
-            <div class="card-header">
-              <div class="card-header-left">
-                <el-icon><Shop /></el-icon>
-                <span>第二步：选择目标上架平台</span>
-              </div>
-            </div>
-          </template>
-
-          <div class="target-platforms">
+          <!-- 步骤地图 -->
+          <div class="workflow-steps">
             <div
-              v-for="p in platforms"
-              :key="p.id"
-              :class="['target-platform-item', { selected: selectedTargets.includes(p.id) }]"
-              @click="toggleTarget(p.id)"
+              v-for="(step, idx) in flowSteps"
+              :key="step.id"
+              :class="['ws-item', {
+                'ws-done': workflowPhase.idx > idx,
+                'ws-active': workflowPhase.idx === idx,
+              }]"
             >
-              <div class="tp-icon" :style="{ background: p.color }">
-                <el-icon color="#fff" :size="20"><Shop /></el-icon>
+              <div class="ws-dot">
+                <el-icon v-if="workflowPhase.idx > idx"><Check /></el-icon>
+                <el-icon v-else-if="workflowPhase.idx === idx && isRunning" class="is-loading" :size="12"><Loading /></el-icon>
+                <span v-else>{{ idx + 1 }}</span>
               </div>
-              <div class="tp-name">{{ p.name }}</div>
-              <div v-if="selectedTargets.includes(p.id)" class="tp-check">
-                <el-icon><Check /></el-icon>
-              </div>
+              <div class="ws-label">{{ step.name }}</div>
+              <div v-if="idx < flowSteps.length - 1" :class="['ws-line', { 'ws-line-done': workflowPhase.idx > idx }]" />
             </div>
-          </div>
-
-          <div class="target-summary">
-            已选 {{ selectedTargets.length }} 个平台
-            <el-link type="primary" :underline="false" @click="selectAllPlatforms">全选</el-link>
-            <el-link type="info" :underline="false" @click="selectedTargets = []">清空</el-link>
-          </div>
-        </el-card>
-
-        <!-- 核心操作按钮 -->
-        <div class="core-action">
-          <div class="core-action-btn" :class="{ disabled: !canStart }" @click="startOneStop">
-            <div class="core-btn-inner">
-              <el-icon :size="32"><MagicStick /></el-icon>
-              <div class="core-btn-text">
-                <div class="core-btn-title">{{ currentStep === 0 ? '一键采集并上货' : flowSteps[currentStep]?.name }}</div>
-                <div class="core-btn-sub">粘贴链接后，按 Ctrl+Enter 或点击此按钮</div>
-              </div>
-              <el-icon v-if="isRunning" class="is-loading core-btn-spinner"><Loading /></el-icon>
-            </div>
-          </div>
-          <div class="core-action-hint">
-            <el-icon><InfoFilled /></el-icon>
-            全程 AI 自动处理：采集信息 → 合规预检 → 标题/描述优化 → 一键上架，无需手动操作
           </div>
         </div>
 
-        <!-- 资深模式高级配置 -->
-        <el-collapse v-if="appStore.isExpert" v-model="showAdvanced" class="advanced-config">
-          <el-collapse-item title="高级配置" name="advanced">
-            <el-form :model="advancedConfig" label-width="100px" size="small">
-              <el-form-item label="采集来源">
-                <el-select v-model="advancedConfig.sourcePlatform" placeholder="自动识别">
-                  <el-option label="自动识别（推荐）" value="auto" />
-                  <el-option label="1688" value="1688" />
-                  <el-option label="淘宝" value="taobao" />
-                  <el-option label="拼多多" value="pdd" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="加价规则">
-                <el-radio-group v-model="advancedConfig.pricingType">
-                  <el-radio value="markup">固定加价 ¥</el-radio>
-                  <el-radio value="multiplier">倍率 ×</el-radio>
-                </el-radio-group>
-              </el-form-item>
-              <el-form-item v-if="advancedConfig.pricingType === 'markup'" label="加价金额">
-                <el-input-number v-model="advancedConfig.markupAmount" :min="0" :precision="2" />
-              </el-form-item>
-              <el-form-item v-else label="加价倍率">
-                <el-input-number v-model="advancedConfig.markupRate" :min="1" :precision="2" />
-              </el-form-item>
-              <el-form-item label="AI 优化">
-                <el-checkbox v-model="advancedConfig.autoTitle">自动生成标题</el-checkbox>
-                <el-checkbox v-model="advancedConfig.autoDesc">自动生成描述</el-checkbox>
-                <el-checkbox v-model="advancedConfig.autoFeatures">自动生成卖点</el-checkbox>
-                <el-checkbox v-model="advancedConfig.autoTranslate">自动多语言翻译</el-checkbox>
-              </el-form-item>
-              <el-form-item label="合规检查">
-                <el-checkbox v-model="advancedConfig.autoCompliance">自动合规预检</el-checkbox>
-              </el-form-item>
-              <el-form-item label="店铺">
-                <el-select v-model="advancedConfig.shopId" placeholder="选择目标店铺">
-                  <el-option label="默认店铺" value="default" />
-                </el-select>
-              </el-form-item>
-            </el-form>
-          </el-collapse-item>
-        </el-collapse>
+      <!-- ========== 左侧：上下文操作区（资深保留全部，小白单步聚焦）====== -->
+        <div class="onestop-left">
 
-      </div>
+          <!-- 小白模式：仅显示当前步骤最需要的一个卡片 -->
+          <template v-if="appStore.isBeginner">
+          <!-- 第0步：粘贴链接（无商品时） -->
+          <el-card v-if="workflowPhase.idx === 0 && !goodsData" class="action-card action-card--primary">
+            <div class="ac-hero">
+              <div class="ac-hero-icon">🔗</div>
+              <div class="ac-hero-title">{{ workflowPhase.cardTitle }}</div>
+              <div class="ac-hero-desc">{{ workflowPhase.cardDesc }}</div>
+            </div>
+            <div class="ac-input-wrapper">
+              <el-input
+                id="sourceUrl"
+                ref="sourceInputRef"
+                v-model="sourceUrl"
+                type="textarea"
+                :rows="3"
+                :disabled="isRunning"
+                :placeholder="workflowPhase.inputPlaceholder"
+                @keyup.ctrl.enter="startOneStop"
+              />
+              <div class="ac-platform-badges">
+                <el-tag size="small" effect="plain">1688</el-tag>
+                <el-tag size="small" effect="plain">淘宝</el-tag>
+                <el-tag size="small" effect="plain" type="info">拼多多</el-tag>
+                <el-tag size="small" effect="plain" type="info">天猫</el-tag>
+              </div>
+            </div>
+            <div class="ac-actions">
+              <el-button type="primary" :loading="isRunning" @click="startOneStop" :disabled="!sourceUrl.trim()">
+                {{ isRunning ? '采集中…' : '🚀 开始采集并上架' }}
+              </el-button>
+              <el-button text @click="openPlatformBrowser">
+                <el-icon><Monitor /></el-icon>
+                浏览器找货
+              </el-button>
+            </div>
+          </el-card>
 
-      <!-- 右侧：执行结果区 -->
-      <div class="onestop-right">
+          <!-- 第1步：正在处理（AI执行中，显示进度） -->
+          <el-card v-else-if="isRunning" class="action-card action-card--running">
+            <div class="ac-running-header">
+              <el-icon class="is-loading" :size="24" color="var(--brand)"><Loading /></el-icon>
+              <div class="ac-running-title">AI 正在处理中…</div>
+              <div class="ac-running-sub">{{ flowSteps[currentStep]?.name }}</div>
+            </div>
+            <div class="ac-running-steps">
+              <div
+                v-for="(step, idx) in flowSteps"
+                :key="step.id"
+                :class="['acr-step', {
+                  'acr-done': idx < currentStep,
+                  'acr-current': idx === currentStep,
+                }]"
+              >
+                <div class="acr-dot">
+                  <el-icon v-if="idx < currentStep" color="#22c55e"><Check /></el-icon>
+                  <el-icon v-else-if="idx === currentStep" class="is-loading" :size="12"><Loading /></el-icon>
+                  <span v-else>{{ idx + 1 }}</span>
+                </div>
+                <span class="acr-name">{{ step.name }}</span>
+              </div>
+            </div>
+          </el-card>
+
+          <!-- 第2步：结果确认（上架前最后一步） -->
+          <el-card v-else-if="goodsData && !isRunning" class="action-card action-card--confirm">
+            <div class="ac-confirm-header">
+              <el-image
+                v-if="goodsData.images?.[0]"
+                :src="goodsData.images[0]"
+                fit="cover"
+                class="ac-confirm-img"
+              />
+              <div class="ac-confirm-info">
+                <div class="ac-confirm-name">{{ goodsData.title || goodsData.name }}</div>
+                <div class="ac-confirm-meta">
+                  <span>¥{{ goodsData.price || goodsData.cost || '—' }}</span>
+                  <span>→ {{ selectedTargets.map(id => platforms.find(p => p.id === id)?.name).join('、') }}</span>
+                </div>
+              </div>
+            </div>
+            <!-- 合规状态（小白一句话） -->
+            <div v-if="complianceResult" class="ac-compliance">
+              <el-icon color="#22c55e"><CircleCheck /></el-icon>
+              <span>{{ complianceResult.passed ? '合规检查通过 ✅' : '发现合规问题，请检查下方详情' }}</span>
+            </div>
+            <div class="ac-confirm-actions">
+              <el-button @click="resetFlow" size="large">取消</el-button>
+              <el-button type="primary" size="large" @click="confirmDecision">
+                确认上架
+                <el-icon><ArrowRight /></el-icon>
+              </el-button>
+            </div>
+          </el-card>
+
+          <!-- 结果展示（商品预览等，仍然显示但简化） -->
+          <el-card v-if="goodsData && !isRunning" class="goods-preview-card">
+            <template #header>
+              <div class="card-header">
+                <div class="card-header-left">
+                  <el-icon><Goods /></el-icon>
+                  <span>商品信息</span>
+                </div>
+                <el-button size="small" text type="primary" @click="resetFlow">重新采集</el-button>
+              </div>
+            </template>
+            <div class="goods-preview">
+              <el-image
+                v-if="goodsData.images?.[0]"
+                :src="goodsData.images[0]"
+                fit="cover"
+                class="goods-main-img"
+              />
+              <div class="goods-info">
+                <div class="goods-name">{{ goodsData.title || goodsData.name }}</div>
+                <div class="goods-meta">
+                  <span class="goods-price">¥{{ goodsData.price || goodsData.cost || '—' }}</span>
+                  <span class="goods-platform">{{ goodsData.platform || sourcePlatform }}</span>
+                  <span class="goods-stock">库存 {{ goodsData.stock || '—' }}</span>
+                </div>
+              </div>
+            </div>
+            </el-card>
+
+          </template>
+
+          <!-- 资深模式：保留原始全量布局 -->
+          <template v-else>
+
+          <!-- 链接输入区 -->
+          <el-card class="input-card">
+            <template #header>
+              <div class="card-header">
+                <div class="card-header-left">
+                  <el-icon><Link /></el-icon>
+                  <span>第一步：粘贴货源链接</span>
+                </div>
+                <el-tag size="small" effect="plain">仅需2步完成上货</el-tag>
+              </div>
+            </template>
+
+            <el-input
+              id="sourceUrlExpert"
+              v-model="sourceUrl"
+              type="textarea"
+              :rows="3"
+              :disabled="currentStep > 0"
+              placeholder="粘贴 1688 / 淘宝 / 拼多多 商品链接，如：&#10;https://detail.1688.com/offer/629584739214.html"
+              @keyup.ctrl.enter="startOneStop"
+            />
+            <div class="url-hint">
+              <span>支持平台：</span>
+              <el-tag size="small" effect="plain">1688</el-tag>
+              <el-tag size="small" effect="plain">淘宝</el-tag>
+              <el-tag size="small" effect="plain" type="info">拼多多</el-tag>
+              <el-tag size="small" effect="plain" type="info">天猫</el-tag>
+              <el-divider direction="vertical" class="url-hint-divider" />
+              <el-button
+                size="small"
+                type="primary"
+                text
+                @click="openPlatformBrowser"
+              >
+                <el-icon><Monitor /></el-icon>
+                打开平台浏览器
+              </el-button>
+            </div>
+          </el-card>
+
+          <!-- 目标平台选择 -->
+          <el-card class="target-card">
+            <template #header>
+              <div class="card-header">
+                <div class="card-header-left">
+                  <el-icon><Shop /></el-icon>
+                  <span>第二步：选择目标上架平台</span>
+                </div>
+              </div>
+            </template>
+
+            <div class="target-platforms">
+              <div
+                v-for="p in platforms"
+                :key="p.id"
+                :class="['target-platform-item', { selected: selectedTargets.includes(p.id) }]"
+                @click="toggleTarget(p.id)"
+              >
+                <div class="tp-icon" :style="{ background: p.color }">
+                  <el-icon color="#fff" :size="20"><Shop /></el-icon>
+                </div>
+                <div class="tp-name">{{ p.name }}</div>
+                <div v-if="selectedTargets.includes(p.id)" class="tp-check">
+                  <el-icon><Check /></el-icon>
+                </div>
+              </div>
+            </div>
+
+            <div class="target-summary">
+              已选 {{ selectedTargets.length }} 个平台
+              <el-link type="primary" :underline="'never'" @click="selectAllPlatforms">全选</el-link>
+              <el-link type="info" :underline="'never'" @click="selectedTargets = []">清空</el-link>
+            </div>
+          </el-card>
+
+          <!-- 核心操作按钮 -->
+          <div class="core-action">
+            <div class="core-action-btn" :class="{ disabled: !canStart }" @click="startOneStop">
+              <div class="core-btn-inner">
+                <el-icon :size="32"><MagicStick /></el-icon>
+                <div class="core-btn-text">
+                  <div class="core-btn-title">{{ currentStep === 0 ? '一键采集并上货' : flowSteps[currentStep]?.name }}</div>
+                  <div class="core-btn-sub">粘贴链接后，按 Ctrl+Enter 或点击此按钮</div>
+                </div>
+                <el-icon v-if="isRunning" class="is-loading core-btn-spinner"><Loading /></el-icon>
+              </div>
+            </div>
+            <div class="core-action-hint">
+              <el-icon><InfoFilled /></el-icon>
+              全程 AI 自动处理：采集信息 → 合规预检 → 标题/描述优化 → 一键上架，无需手动操作
+            </div>
+          </div>
+
+          <!-- ====== 爆品灵感推荐面板（嵌入主工作台）====== -->
+          <el-collapse v-model="showHotInspiration" class="hot-inspiration-panel">
+            <el-collapse-item title="💡 爆品灵感推荐" name="hot">
+              <div class="hot-inspiration-content">
+                <div class="hot-insp-header">
+                  <el-tag size="small" type="warning">热卖中</el-tag>
+                  <span class="hot-insp-tip">点击可直接粘贴链接</span>
+                </div>
+                <div class="hot-goods-grid">
+                  <div
+                    v-for="item in hotGoodsList"
+                    :key="item.id"
+                    class="hot-goods-card"
+                    @click="applyHotGoods(item)"
+                    :title="'点击使用：' + item.title"
+                  >
+                    <el-image :src="item.image" fit="cover" class="hot-goods-img" />
+                    <div class="hot-goods-info">
+                      <div class="hot-goods-title">{{ item.title }}</div>
+                      <div class="hot-goods-price">¥{{ item.price }}</div>
+                      <div class="hot-goods-sales">🔥 {{ item.sales }}件已售</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+
+          <!-- 资深模式高级配置 -->
+          <el-collapse v-if="appStore.isExpert" v-model="showAdvanced" class="advanced-config">
+            <el-collapse-item title="高级配置" name="advanced">
+              <el-form :model="advancedConfig" label-width="100px" size="small">
+                <el-form-item label="采集来源">
+                  <el-select v-model="advancedConfig.sourcePlatform" placeholder="自动识别">
+                    <el-option label="自动识别（推荐）" value="auto" />
+                    <el-option label="1688" value="1688" />
+                    <el-option label="淘宝" value="taobao" />
+                    <el-option label="拼多多" value="pdd" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="加价规则">
+                  <el-radio-group v-model="advancedConfig.pricingType">
+                    <el-radio value="markup">固定加价 ¥</el-radio>
+                    <el-radio value="multiplier">倍率 ×</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+                <el-form-item v-if="advancedConfig.pricingType === 'markup'" label="加价金额">
+                  <el-input-number id="markupAmount" v-model="advancedConfig.markupAmount" :min="0" :precision="2" />
+                </el-form-item>
+                <el-form-item v-else label="加价倍率">
+                  <el-input-number id="markupRate" v-model="advancedConfig.markupRate" :min="1" :precision="2" />
+                </el-form-item>
+                <el-form-item label="AI 优化">
+                  <el-checkbox v-model="advancedConfig.autoTitle">自动生成标题</el-checkbox>
+                  <el-checkbox v-model="advancedConfig.autoDesc">自动生成描述</el-checkbox>
+                  <el-checkbox v-model="advancedConfig.autoFeatures">自动生成卖点</el-checkbox>
+                  <el-checkbox v-model="advancedConfig.autoTranslate">自动多语言翻译</el-checkbox>
+                </el-form-item>
+                <el-form-item label="合规检查">
+                  <el-checkbox v-model="advancedConfig.autoCompliance">自动合规预检</el-checkbox>
+                </el-form-item>
+                <el-form-item label="店铺">
+                  <el-select v-model="advancedConfig.shopId" placeholder="选择目标店铺">
+                    <el-option label="默认店铺" value="default" />
+                  </el-select>
+                </el-form-item>
+              </el-form>
+            </el-collapse-item>
+          </el-collapse>
+          </template><!-- 关闭资深模式全量布局模板 -->
+
+        </div><!-- 关闭 onestop-left -->
+
+        <!-- 右侧：执行结果区 -->
+        <div class="onestop-right">
 
         <!-- 当前执行状态 -->
         <el-card v-if="isRunning" class="running-card">
@@ -367,21 +550,112 @@
                 <el-icon><MagicStick /></el-icon>
                 AI 优化结果
               </div>
-              <div v-if="aiOptimized.title" class="ai-optimized-item">
-                <div class="ao-label">优化标题</div>
-                <div class="ao-value">{{ aiOptimized.title }}</div>
+
+              <!-- 优化标题 -->
+              <div class="ai-optimized-item">
+                <div class="ao-label">
+                  优化标题
+                  <el-tag v-if="aiOptimized.title" size="small" type="success" style="margin-left: 6px">已完成</el-tag>
+                  <el-tag v-if="aiOptimized.titleFail" size="small" type="danger" style="margin-left: 6px">失败</el-tag>
+                </div>
+                <div v-if="aiOptimized.title" class="ao-value">{{ aiOptimized.title }}</div>
+                <div v-if="aiOptimized.titleFail" class="ao-fail">
+                  <span>{{ aiOptimized.titleFailMsg }}</span>
+                  <el-button size="small" type="warning" @click="retryOptimizeTitle">
+                    <el-icon><RefreshRight /></el-icon>重试
+                  </el-button>
+                </div>
+                <el-button v-else-if="!aiOptimized.title && !aiOptimized.titleFail" size="small" @click="retryOptimizeTitle" :disabled="aiOptimizingTitle">
+                  <el-icon><MagicStick /></el-icon>生成标题
+                </el-button>
               </div>
-              <div v-if="aiOptimized.features?.length" class="ai-optimized-item">
-                <div class="ao-label">核心卖点</div>
-                <div class="ao-features">
+
+              <!-- 核心卖点 -->
+              <div class="ai-optimized-item">
+                <div class="ao-label">
+                  核心卖点
+                  <el-tag v-if="aiOptimized.features?.length" size="small" type="success" style="margin-left: 6px">已完成</el-tag>
+                  <el-tag v-if="aiOptimized.featuresFail" size="small" type="danger" style="margin-left: 6px">失败</el-tag>
+                </div>
+                <div v-if="aiOptimized.features?.length" class="ao-features">
                   <el-tag v-for="(f, i) in aiOptimized.features" :key="i" size="small" type="warning" style="margin: 2px">
                     {{ f.icon }} {{ f.title }}
                   </el-tag>
                 </div>
+                <div v-if="aiOptimized.featuresFail" class="ao-fail">
+                  <span>{{ aiOptimized.featuresFailMsg }}</span>
+                  <el-button size="small" type="warning" @click="retryOptimizeFeatures">
+                    <el-icon><RefreshRight /></el-icon>重试
+                  </el-button>
+                </div>
+                <el-button v-else-if="!aiOptimized.features?.length && !aiOptimized.featuresFail" size="small" @click="retryOptimizeFeatures" :disabled="aiOptimizingFeatures">
+                  <el-icon><MagicStick /></el-icon>生成卖点
+                </el-button>
               </div>
-              <div v-if="aiOptimized.description" class="ai-optimized-item">
-                <div class="ao-label">优化描述</div>
-                <div class="ao-value ao-desc">{{ aiOptimized.description }}</div>
+
+              <!-- 优化描述 -->
+              <div class="ai-optimized-item">
+                <div class="ao-label">
+                  优化描述
+                  <el-tag v-if="aiOptimized.description" size="small" type="success" style="margin-left: 6px">已完成</el-tag>
+                  <el-tag v-if="aiOptimized.descFail" size="small" type="danger" style="margin-left: 6px">失败</el-tag>
+                </div>
+                <div v-if="aiOptimized.description" class="ao-value ao-desc">{{ aiOptimized.description }}</div>
+                <div v-if="aiOptimized.descFail" class="ao-fail">
+                  <span>{{ aiOptimized.descFailMsg }}</span>
+                  <el-button size="small" type="warning" @click="retryOptimizeDesc">
+                    <el-icon><RefreshRight /></el-icon>重试
+                  </el-button>
+                </div>
+                <el-button v-else-if="!aiOptimized.description && !aiOptimized.descFail" size="small" @click="retryOptimizeDesc" :disabled="aiOptimizingDesc">
+                  <el-icon><MagicStick /></el-icon>生成描述
+                </el-button>
+              </div>
+
+              <!-- AI 生图 -->
+              <div class="ai-optimized-item">
+                <div class="ao-label">AI 生图</div>
+                <div class="ai-image-gen-area">
+                  <div class="aig-input-row">
+                    <el-input
+                      id="imagePrompt"
+                      v-model="imagePrompt"
+                      size="small"
+                      placeholder="描述想要的主图，如：白底极简风格，展示产品细节"
+                      style="flex: 1"
+                      :disabled="imageGenLoading"
+                    />
+                    <el-button
+                      size="small"
+                      type="primary"
+                      :loading="imageGenLoading"
+                      @click="handleGenerateImage"
+                      :disabled="!imagePrompt.trim()"
+                    >
+                      <el-icon><MagicStick /></el-icon>
+                      文生图
+                    </el-button>
+                  </div>
+                  <!-- 生图预览 -->
+                  <div v-if="generatedImage" class="aig-preview">
+                    <el-image :src="generatedImage" fit="contain" class="aig-preview-img" />
+                    <div class="aig-preview-actions">
+                      <el-button size="small" type="primary" @click="applyGeneratedImage">
+                        <el-icon><Check /></el-icon>
+                        设为主图
+                      </el-button>
+                      <el-button size="small" @click="generatedImage = ''">
+                        <el-icon><Delete /></el-icon>
+                        丢弃
+                      </el-button>
+                    </div>
+                  </div>
+                  <!-- 加载占位 -->
+                  <div v-if="imageGenLoading" class="aig-loading">
+                    <el-icon class="is-loading"><Loading /></el-icon>
+                    AI 正在生成图片，约需 15-30 秒...
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -402,23 +676,42 @@
             </div>
           </template>
 
-          <div v-if="complianceResult.errors?.length" class="compliance-errors">
-            <div class="compliance-section-title">❌ 需要修复</div>
-            <div v-for="(err, i) in complianceResult.errors" :key="i" class="compliance-item error">
-              <el-icon><Close /></el-icon>
-              {{ err.msg }}
+          <!-- 小白模式：仅显示一句话结论 -->
+          <div v-if="appStore.isBeginner">
+            <div v-if="complianceResult.passed && !complianceResult.warnings?.length" class="compliance-passed">
+              <el-icon color="#22c55e" :size="28"><CircleCheck /></el-icon>
+              <p>全部合规检查通过，可直接上架！</p>
+            </div>
+            <div v-else-if="complianceResult.passed && complianceResult.warnings?.length" class="compliance-warnings compliance-warnings--beginner">
+              <el-icon color="#f59e0b"><Warning /></el-icon>
+              <p>有 {{ complianceResult.warnings.length }} 项优化建议，AI 已自动处理，上架不受影响</p>
+            </div>
+            <div v-else class="compliance-errors compliance-errors--beginner">
+              <el-icon color="#ef4444"><Close /></el-icon>
+              <p>发现 {{ complianceResult.errors.length }} 项合规问题，AI 已尝试自动修复，请检查确认</p>
             </div>
           </div>
-          <div v-if="complianceResult.warnings?.length" class="compliance-warnings">
-            <div class="compliance-section-title">⚠️ 建议优化</div>
-            <div v-for="(warn, i) in complianceResult.warnings" :key="i" class="compliance-item warning">
-              <el-icon><Warning /></el-icon>
-              {{ warn.msg }}
+
+          <!-- 资深模式：显示完整详情 -->
+          <div v-mode="'expert'">
+            <div v-if="complianceResult.errors?.length" class="compliance-errors">
+              <div class="compliance-section-title">❌ 需要修复</div>
+              <div v-for="(err, i) in complianceResult.errors" :key="i" class="compliance-item error">
+                <el-icon><Close /></el-icon>
+                {{ err.msg }}
+              </div>
             </div>
-          </div>
-          <div v-if="complianceResult.passed && !complianceResult.warnings?.length" class="compliance-passed">
-            <el-icon color="#22c55e" :size="28"><CircleCheck /></el-icon>
-            <p>全部合规检查通过，可直接上架！</p>
+            <div v-if="complianceResult.warnings?.length" class="compliance-warnings">
+              <div class="compliance-section-title">⚠️ 建议优化</div>
+              <div v-for="(warn, i) in complianceResult.warnings" :key="i" class="compliance-item warning">
+                <el-icon><Warning /></el-icon>
+                {{ warn.msg }}
+              </div>
+            </div>
+            <div v-if="complianceResult.passed && !complianceResult.warnings?.length" class="compliance-passed">
+              <el-icon color="#22c55e" :size="28"><CircleCheck /></el-icon>
+              <p>全部合规检查通过，可直接上架！</p>
+            </div>
           </div>
         </el-card>
 
@@ -439,6 +732,16 @@
             <div class="listing-success-text">
               商品已成功上架至
               <strong>{{ listingResult.platforms.join('、') }}</strong>
+            </div>
+            <!-- 物流方案提示 -->
+            <div class="listing-logistics-tip">
+              <div class="llt-label">🚚 发货提醒</div>
+              <div class="llt-text" v-if="logisticsRecommended.length > 0">
+                建议使用
+                <strong>{{ logisticsRecommended[0]?.name || '平台推荐物流' }}</strong>
+                发货，时效 {{ logisticsRecommended[0]?.days || '待确认' }}，费用 {{ logisticsRecommended[0]?.fee || '待确认' }}
+              </div>
+              <div class="llt-text" v-else>请前往「物流追踪」绑定发货物流商</div>
             </div>
             <div class="listing-success-actions">
               <el-button type="primary" @click="viewListingResult">
@@ -470,38 +773,82 @@
           </div>
         </el-card>
 
-        <!-- 空状态 -->
+        <!-- 空状态（资深模式：简洁，小白模式：带引导） -->
         <el-card v-if="!isRunning && !goodsData && !complianceResult && !listingResult" class="empty-card">
           <div class="empty-state">
-            <div class="empty-icon">
-              <el-icon><Lightning /></el-icon>
-            </div>
-            <div class="empty-title">一站式采集上货</div>
-            <div class="empty-desc">
-              粘贴货源链接，选择目标平台<br/>
-              全程 AI 自动完成采集、优化、合规检查、上架
-            </div>
-            <div class="empty-steps">
-              <div class="empty-step">
-                <div class="es-num">1</div>
-                <div class="es-text">粘贴链接</div>
+
+            <!-- ====== 资深模式空状态 ====== -->
+            <div v-if="appStore.isExpert" class="empty-state-expert">
+              <div class="empty-icon">
+                <el-icon><Lightning /></el-icon>
               </div>
-              <div class="es-arrow">→</div>
-              <div class="empty-step">
-                <div class="es-num">2</div>
-                <div class="es-text">选择平台</div>
-              </div>
-              <div class="es-arrow">→</div>
-              <div class="empty-step">
-                <div class="es-num">3</div>
-                <div class="es-text">一键完成</div>
+              <div class="empty-title">一站式采集上货</div>
+              <div class="empty-desc">
+                粘贴货源链接，选择目标平台<br/>
+                全程 AI 自动完成采集、优化、合规检查、上架
               </div>
             </div>
+
+            <!-- ====== 小白模式空状态（带引导）====== -->
+            <div v-else class="empty-state-beginner">
+              <div class="beginner-hero">
+                <div class="beginner-hero-icon">🚀</div>
+                <div class="beginner-hero-title">跨境上货，原来这么简单</div>
+                <div class="beginner-hero-sub">3步完成商品上架，全程AI自动处理</div>
+              </div>
+
+              <div class="beginner-guides">
+                <div class="beginner-guide-item">
+                  <div class="bgi-num">①</div>
+                  <div class="bgi-content">
+                    <div class="bgi-title">粘贴货源链接</div>
+                    <div class="bgi-desc">复制 1688 / 淘宝 / 拼多多 商品链接，粘贴到上方输入框</div>
+                  </div>
+                  <div class="bgi-action">
+                    <el-button size="small" type="primary" @click="focusSourceInput">
+                      去粘贴链接
+                    </el-button>
+                  </div>
+                </div>
+
+                <div class="beginner-guide-divider" />
+
+                <div class="beginner-guide-item">
+                  <div class="bgi-num">②</div>
+                  <div class="bgi-content">
+                    <div class="bgi-title">选择目标平台</div>
+                    <div class="bgi-desc">勾选你想上架的目标平台（可多选），系统自动适配各国规则</div>
+                  </div>
+                </div>
+
+                <div class="beginner-guide-divider" />
+
+                <div class="beginner-guide-item">
+                  <div class="bgi-num">③</div>
+                  <div class="bgi-content">
+                    <div class="bgi-title">一键确认上架</div>
+                    <div class="bgi-desc">AI 自动完成：信息采集 → 合规检查 → 标题优化 → 多语言翻译 → 上架</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="beginner-quick-actions">
+                <el-button text type="primary" @click="openPlatformBrowser">
+                  <el-icon><Monitor /></el-icon>
+                  打开平台浏览器找货
+                </el-button>
+                <el-button text type="primary" @click="scanModeVisible = true">
+                  <el-icon><FullScreen /></el-icon>
+                  扫码枪采集
+                </el-button>
+              </div>
+            </div>
+
           </div>
         </el-card>
 
-      </div>
-    </div>
+      </div><!-- 关闭 onestop-right -->
+      </div><!-- 关闭 onestop-layout -->
 
     <!-- ====== 扫码上货弹窗（模式3） ====== -->
     <el-dialog
@@ -597,8 +944,9 @@
     </el-dialog>
 
     <!-- 扫码提示悬浮条（全局扫码触发时显示） -->
+    <!-- v-show 而非 v-if：防止路由切换时 Transition 动画延迟导致 fixed 遮罩残留 -->
     <Transition name="slide-up">
-      <div v-if="showScanTip" class="scan-tip-bar" @click="openScanMode">
+      <div v-show="showScanTip" class="scan-tip-bar" @click="openScanMode">
         <el-icon><FullScreen /></el-icon>
         <span>检测到扫码枪输入：{{ scanTipBarcode }}</span>
         <el-button size="small" type="primary">点击处理</el-button>
@@ -717,6 +1065,7 @@
             <div class="filter-actions">
               <el-input-number
                 v-if="filterMode === 'profit_amount'"
+                id="filterThresholdAmount"
                 v-model="filterThreshold"
                 :min="0"
                 :max="10000"
@@ -726,6 +1075,7 @@
               />
               <el-input-number
                 v-else
+                id="filterThresholdRate"
                 v-model="filterThreshold"
                 :min="0"
                 :max="100"
@@ -966,6 +1316,30 @@
         <div class="dr-label">💡 小辽评估：</div>
         <div class="dr-text">{{ decisionResult.reason }}</div>
       </div>
+
+      <!-- ====== 物流方案推荐（资深专属）====== -->
+      <div class="logistics-recommend-section" v-if="logisticsRecommended.length > 0" v-mode="'expert'">
+        <div class="lrs-title">🚚 推荐物流方案</div>
+        <div class="lrs-plans">
+          <div
+            v-for="plan in logisticsRecommended.slice(0, 3)"
+            :key="plan.id"
+            :class="['lrs-plan', { recommended: plan.recommended }]"
+          >
+            <div class="lrs-plan-header">
+              <span class="lrs-plan-name">{{ plan.name }}</span>
+              <el-tag v-if="plan.recommended" size="small" type="success">推荐</el-tag>
+              <el-tag v-else size="small" type="info">备选</el-tag>
+            </div>
+            <div class="lrs-plan-meta">
+              <span>💰 {{ plan.fee }}</span>
+              <span>⏱ {{ plan.days }}</span>
+            </div>
+            <div class="lrs-plan-desc">{{ plan.desc }}</div>
+            <div class="lrs-plan-suitable">适合：{{ plan.suitable }}</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <template #footer>
@@ -978,28 +1352,58 @@
       </div>
     </template>
   </el-dialog>
+
+  <!-- ==================== 平台浏览器（本地挂载，事件直达）============ -->
+  <PlatformBrowser
+    ref="platformBrowser"
+    @external-collect="handleExternalCollect"
+    @goods-dropped="handleGoodsDropped"
+  />
+
+  <!-- ==================== 上货确认弹窗（浏览器内拖拽触发）============ -->
+  <ListingConfirmDialog
+    v-model="listingDialogVisible"
+    :goods="listingDialogGoods ? [listingDialogGoods] : null"
+    :target-tab="listingDialogTargetTab"
+    @success="handleListingSuccess"
+    @failed="listingDialogGoods = null"
+  />
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, onErrorCaptured } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, onUnmounted, onErrorCaptured } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Link, Shop, Upload, MagicStick, Check, Close, Loading,
   Warning, CircleCheck, Rank, Setting, InfoFilled, RefreshRight,
-  Goods, TopRight, FullScreen, RefreshLeft, Lightning, UploadFilled, ArrowRight
+  Goods, TopRight, FullScreen, RefreshLeft, Lightning, UploadFilled, ArrowRight,
+  Delete, Monitor
 } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/useAppStore'
 import { useCompliance } from '@/composables/useCompliance'
+import { useLogisticsRecommend } from '@/composables/useLogisticsRecommend'
 import { collect1688Single } from '@/api/collect'
+import PlatformBrowser from '@/components/PlatformBrowser.vue'
+import ListingConfirmDialog from '@/components/ListingConfirmDialog.vue'
 import {
-  generateTitle, generateDescription, generateFeatures
+  generateTitle, generateDescription, generateFeatures, generateImage
 } from '@/api/ai'
+import { listingGoods, listingGoodsBatch } from '@/api/goods'
 import { SCAN_EVENT } from '@/composables/useScanner'
 import { useOneStopStore, PRICING_TEMPLATES } from '@/stores/useOneStop'
 
 const appStore = useAppStore()
 const oneStop = useOneStopStore()
 const { preCheck } = useCompliance()
+const { getRecommended, getBestForNewSeller } = useLogisticsRecommend()
+
+// ── 全局平台浏览器（本地挂载）──────────────────────────────
+const platformBrowser = ref(null)
+
+// ── ListingConfirmDialog 状态 ─────────────────────────────
+const listingDialogVisible = ref(false)
+const listingDialogGoods = ref(null)   // 当前待上架商品
+const listingDialogTargetTab = ref(null) // 目标平台 tab（来自浏览器内拖拽）
 
 // ==================== 平台配置 ====================
 const platforms = [
@@ -1031,9 +1435,202 @@ const sourcePlatform = ref('')
 // 选品决策结果
 const decisionResult = ref(null)
 
+// AI 生图
+const imagePrompt = ref('')
+const imageGenLoading = ref(false)
+const generatedImage = ref('')
+
+// AI 标题/卖点/描述 单独重试状态
+const aiOptimizingTitle = ref(false)
+const aiOptimizingFeatures = ref(false)
+const aiOptimizingDesc = ref(false)
+
+// ==================== 平台浏览器集成（步骤3核心）===============
+
+/** 打开平台浏览器 */
+function openPlatformBrowser() {
+  if (platformBrowser.value) {
+    platformBrowser.value.show()
+  } else {
+    ElMessage.info('正在打开平台浏览器…')
+  }
+}
+
+/** 小白模式引导：聚焦到货源链接输入框 */
+function focusSourceInput() {
+  const el = document.querySelector('.source-input-card textarea')
+  if (el) el.focus()
+}
+
+/**
+ * 处理来自平台浏览器的外部采集事件（iframe 内拖拽商品）
+ * 自动填入货源链接并触发采集流程
+ */
+async function handleExternalCollect({ goods, platformKey }) {
+  ElMessage.success(`检测到来自 ${platformKey || '货源平台'} 的商品，开始采集…`)
+
+  // 如果商品有 sourceUrl，自动填入
+  if (goods?.sourceUrl) {
+    sourceUrl.value = goods.sourceUrl
+  }
+
+  // 触发完整的上货流程
+  // 先模拟有货源链接，直接进入采集
+  if (sourceUrl.value || goods?.sourceUrl) {
+    sourceUrl.value = goods?.sourceUrl || sourceUrl.value
+    // 自动触发采集（使用已有函数）
+    await nextTick()
+    if (sourceUrl.value) {
+      await startOneStop()
+    }
+  } else if (goods) {
+    // 商品数据已有，直接用商品数据启动流程
+    await startOneStopWithGoods(goods)
+  }
+}
+
+/**
+ * 处理内部商品拖入目标平台浏览器的场景
+ * 打开 ListingConfirmDialog 确认上架
+ */
+function handleGoodsDropped({ goods, targetTab }) {
+  if (!goods) return
+  listingDialogGoods.value = goods
+  listingDialogTargetTab.value = targetTab || null
+  listingDialogVisible.value = true
+}
+
+/**
+ * 使用已有商品数据启动上货流程（绕过粘贴链接步骤）
+ */
+async function startOneStopWithGoods(goods) {
+  if (!goods) return
+  goodsData.value = goods
+  currentStep.value = 1
+  // 直接进入 AI 优化步骤（跳过采集）
+  await optimizeAndList([goods])
+}
+
+// ListingConfirmDialog 成功后
+function handleListingSuccess() {
+  listingDialogVisible.value = false
+  listingDialogGoods.value = null
+  listingDialogTargetTab.value = null
+}
+
+// ==================== 原有函数继续 ============================
+
+async function retryOptimizeTitle() {
+  if (!goodsData.value) return
+  aiOptimizingTitle.value = true
+  try {
+    const title = await generateTitle({
+      name: goodsData.value.title || goodsData.value.name || '',
+      category: goodsData.value.category || '',
+      material: goodsData.value.material || '',
+      style: goodsData.value.style || '',
+      features: Array.isArray(goodsData.value.features)
+        ? goodsData.value.features.map(f => f.title || f).join(';')
+        : (goodsData.value.features || ''),
+    })
+    aiOptimized.value.title = title
+    goodsData.value.title = title
+    goodsData.value.name = title
+  } catch (e) {
+    ElMessage.error('标题生成失败：' + (e.message || '后端连接异常'))
+    aiOptimized.value.titleFail = true
+    aiOptimized.value.titleFailMsg = e.message || '生成失败'
+  } finally {
+    aiOptimizingTitle.value = false
+  }
+}
+
+async function retryOptimizeFeatures() {
+  if (!goodsData.value) return
+  aiOptimizingFeatures.value = true
+  try {
+    const features = await generateFeatures({
+      name: goodsData.value.title || goodsData.value.name || '',
+      category: goodsData.value.category || '',
+    })
+    aiOptimized.value.features = features
+    goodsData.value.features = features
+  } catch (e) {
+    ElMessage.error('卖点生成失败：' + (e.message || '后端连接异常'))
+    aiOptimized.value.featuresFail = true
+    aiOptimized.value.featuresFailMsg = e.message || '生成失败'
+  } finally {
+    aiOptimizingFeatures.value = false
+  }
+}
+
+async function retryOptimizeDesc() {
+  if (!goodsData.value) return
+  aiOptimizingDesc.value = true
+  try {
+    const desc = await generateDescription({
+      name: goodsData.value.title || goodsData.value.name || '',
+      category: goodsData.value.category || '',
+      material: goodsData.value.material || '',
+      style: goodsData.value.style || '',
+      features: Array.isArray(goodsData.value.features)
+        ? goodsData.value.features.map(f => f.title || f).join(';')
+        : (goodsData.value.features || ''),
+    })
+    const descText = typeof desc === 'string' ? desc : (desc.description || desc.description_cn || '')
+    aiOptimized.value.description = descText
+    goodsData.value.description = descText
+  } catch (e) {
+    ElMessage.error('描述生成失败：' + (e.message || '后端连接异常'))
+    aiOptimized.value.descFail = true
+    aiOptimized.value.descFailMsg = e.message || '生成失败'
+  } finally {
+    aiOptimizingDesc.value = false
+  }
+}
+
+async function handleGenerateImage() {
+  const prompt = imagePrompt.value.trim()
+  if (!prompt) return
+  imageGenLoading.value = true
+  try {
+    const productName = goodsData.value?.title || goodsData.value?.name || ''
+    const enhancedPrompt = productName
+      ? `${productName}, ${prompt}, e-commerce product photography, clean white background, high quality, professional`
+      : `${prompt}, e-commerce product photography, clean white background, high quality, professional`
+    const result = await generateImage(enhancedPrompt)
+    const imgData = result.imageBase64 || result.imageUrl
+    if (imgData) {
+      generatedImage.value = imgData
+      ElMessage.success('图片生成成功，点击"设为主图"应用')
+    } else {
+      ElMessage.error('图片生成失败，请稍后重试')
+    }
+  } catch (e) {
+    ElMessage.error(e.message || 'AI 生图异常')
+  } finally {
+    imageGenLoading.value = false
+  }
+}
+
+function applyGeneratedImage() {
+  if (!generatedImage.value || !goodsData.value) return
+  if (!goodsData.value.images) goodsData.value.images = []
+  goodsData.value.images.splice(0, 1, generatedImage.value)
+  generatedImage.value = ''
+  ElMessage.success('已设为主图')
+}
+
+
+
 // 选品决策弹窗控制
 const showDecisionModal = ref(false)
 let decisionModalResolve = ref(null)
+
+// 物流推荐（随目标平台动态计算）
+const logisticsRecommended = computed(() => {
+  return getRecommended(selectedTargets.value)
+})
 
 // 确认选品决策
 function confirmDecision() {
@@ -1060,11 +1657,95 @@ const flowSteps = computed(() => [
   { id: 'listing',    name: '提交上架',        desc: '正在提交到目标平台...',            running: currentStep.value === 4 },
 ])
 
+// ========== 小白模式工作流状态（computed，供模板使用）===========
+const workflowPhase = computed(() => {
+  if (!goodsData.value || currentStep.value === 0) {
+    // 阶段0：等待输入
+    return {
+      idx: 0,
+      num: 1,
+      label: '粘贴货源链接',
+      hint: '复制 1688 / 淘宝 / 拼多多 商品链接，粘贴到这里',
+      cardTitle: '粘贴货源链接',
+      cardDesc: '系统自动识别平台，采集商品信息',
+      inputPlaceholder: '粘贴货源链接，如：\nhttps://detail.1688.com/offer/629584739214.html',
+    }
+  } else if (isRunning.value) {
+    // 阶段1：正在处理
+    const cur = flowSteps.value[currentStep.value - 1]
+    return {
+      idx: 1,
+      num: 2,
+      label: 'AI 正在处理中…',
+      hint: cur?.desc || '请稍候，系统正在自动完成所有步骤',
+      cardTitle: '正在处理中',
+      cardDesc: '',
+      inputPlaceholder: '',
+    }
+  } else {
+    // 阶段2：结果确认
+    return {
+      idx: 2,
+      num: 3,
+      label: '确认上架',
+      hint: '检查商品信息，确认后一键上架到目标平台',
+      cardTitle: '确认上架',
+      cardDesc: '商品已准备就绪，点击确认开始上架',
+      inputPlaceholder: '',
+    }
+  }
+})
+
 const canStart = computed(() => {
   return sourceUrl.value.trim().length > 0 &&
     selectedTargets.value.length > 0 &&
     !isRunning.value
 })
+
+// ==================== 爆品灵感推荐数据 ====================
+const showHotInspiration = ref(['hot'])
+
+/** 爆品列表（来源：跨境电商热卖品类 · 后续接入卖家之家API） */
+const hotGoodsList = ref([
+  {
+    id: 1,
+    title: '女士比基尼泳装 三件套',
+    price: 68,
+    sales: 3280,
+    image: '/images/ladies/bikini/微信图片_20260412160430_922_65.jpg',
+    url: 'https://detail.1688.com/offer/7612345678901.html',
+  },
+  {
+    id: 2,
+    title: '女士连体泳装 修身显瘦',
+    price: 88,
+    sales: 2560,
+    image: '/images/ladies/lianti/微信图片_20260412160439_925_65.jpg',
+    url: 'https://detail.1688.com/offer/7612345678902.html',
+  },
+  {
+    id: 3,
+    title: '儿童沙滩玩具套装 10件套',
+    price: 45,
+    sales: 1890,
+    image: '/images/toys/微信图片_20260412160425_919_65.jpg',
+    url: 'https://detail.1688.com/offer/7612345678903.html',
+  },
+  {
+    id: 4,
+    title: '露营沙滩帐篷 便携防水',
+    price: 128,
+    sales: 1450,
+    image: 'https://via.placeholder.com/200x200/10b981/ffffff?text=帐篷',
+    url: 'https://detail.1688.com/offer/7612345678904.html',
+  },
+])
+
+/** 点击爆品 → 填充到链接输入框 */
+function applyHotGoods(item) {
+  sourceUrl.value = item.url
+  ElMessage.success(`已加载：${item.title}`)
+}
 
 // ==================== 资深模式高级配置 ====================
 const showAdvanced = ref([])
@@ -1208,7 +1889,7 @@ async function startOneStop() {
 
     // ========== 步骤3：AI 优化 ==========
     currentStep.value = 3
-    const optimized = {}
+    const optimized = { titleFail: false, descFail: false, featuresFail: false }
     const platformNames = targets.map(id => platforms.find(p => p.id === id)?.name || id).join('、')
 
     if (appStore.isExpert ? advancedConfig.autoTitle : true) {
@@ -1221,7 +1902,13 @@ async function startOneStop() {
           features: '',
         })
         optimized.title = title
-      } catch {}
+        goods.title = title  // 应用到商品数据
+        goods.name = title
+      } catch (e) {
+        optimized.titleFail = true
+        optimized.titleFailMsg = e.message || '生成失败，请稍后重试'
+        console.warn('[AI] 标题生成失败:', e.message)
+      }
     }
 
     if (appStore.isExpert ? advancedConfig.autoFeatures : true) {
@@ -1231,7 +1918,12 @@ async function startOneStop() {
           category: '',
         })
         optimized.features = features
-      } catch {}
+        goods.features = features  // 应用到商品数据
+      } catch (e) {
+        optimized.featuresFail = true
+        optimized.featuresFailMsg = e.message || '生成失败，请稍后重试'
+        console.warn('[AI] 卖点生成失败:', e.message)
+      }
     }
 
     if (appStore.isExpert ? advancedConfig.autoDesc : true) {
@@ -1243,10 +1935,18 @@ async function startOneStop() {
           style: '',
           features: '',
         })
-        optimized.description = desc.description || desc
-      } catch {}
+        const descText = typeof desc === 'string' ? desc : (desc.description || desc.description_cn || '')
+        optimized.description = descText
+        goods.description = descText  // 应用到商品数据
+      } catch (e) {
+        optimized.descFail = true
+        optimized.descFailMsg = e.message || '生成失败，请稍后重试'
+        console.warn('[AI] 描述生成失败:', e.message)
+      }
     }
 
+    // 同步更新显示用的 goodsData
+    goodsData.value = { ...goods }
     aiOptimized.value = optimized
 
     // ========== 步骤3.5：选品决策（利润测算+风险提示）==========
@@ -1268,14 +1968,31 @@ async function startOneStop() {
       return
     }
 
-    // ========== 步骤4：提交上架 ==========
+    // ========== 步骤4：提交上架（真实API）==========
     currentStep.value = 4
-    await new Promise(r => setTimeout(r, 1200)) // 模拟API调用
+    const listingErrors = []
+    for (const target of targets) {
+      try {
+        const res = await listingGoods({
+          goods_id: goods.id || goods.barcode || Date.now(),
+          platform: target,
+          title: goods.title || goods.name,
+          description: goods.description || '',
+          price: decisionResult.value?.profit?.salePrice || goods.price || 0,
+          images: goods.images || [],
+        })
+        if (res.code !== 0 && res.code !== 200) {
+          listingErrors.push({ platform: target, reason: res.message || '上架失败', suggestion: '请检查平台授权状态' })
+        }
+      } catch (err) {
+        listingErrors.push({ platform: target, reason: err.message || '接口异常', suggestion: '稍后重试或检查网络' })
+      }
+    }
 
     listingResult.value = {
-      platforms: platformNames.split('、'),
-      success: true,
-      failed: [],
+      platforms: platformNames.split('、').filter(p => !listingErrors.find(e => e.platform === platforms.find(pl => pl.name === p)?.id)),
+      success: listingErrors.length === 0,
+      failed: listingErrors,
     }
 
     currentStep.value = 5
@@ -1509,13 +2226,26 @@ async function onStartListing() {
 
   const results = []
   for (const id of oneStop.selectedGoods) {
+    const goods = oneStop.evaluatedGoods.find(g => g.id === id)
+    if (!goods) continue
     try {
-      // Mock：模拟上架请求（真实场景调用对应平台API）
-      await new Promise(r => setTimeout(r, 800))
-      results.push({ platform: oneStop.collectConfig.targetPlatforms[0] || 'tiktok', success: true })
+      const platform = oneStop.collectConfig.targetPlatforms[0] || 'tiktok'
+      const res = await listingGoods({
+        goods_id: goods.id || id,
+        platform,
+        title: goods.title || goods.name,
+        description: goods.description || '',
+        price: oneStop.calcProfit(goods)?.salePrice || goods.price || 0,
+        images: goods.images || [],
+      })
+      if (res.code === 0 || res.code === 200) {
+        results.push({ platform, success: true })
+      } else {
+        results.push({ platform, success: false, failReason: res.message || '上架失败', suggestion: '检查平台授权' })
+      }
       oneStop.updateBatchProgress(true)
     } catch (e) {
-      results.push({ platform: oneStop.collectConfig.targetPlatforms[0] || 'tiktok', success: false, failReason: '接口异常', suggestion: '请重试或检查网络' })
+      results.push({ platform: oneStop.collectConfig.targetPlatforms[0] || 'tiktok', success: false, failReason: e.message || '接口异常', suggestion: '稍后重试' })
       oneStop.updateBatchProgress(false)
     }
   }
@@ -1560,6 +2290,17 @@ onErrorCaptured((err, instance, info) => {
   console.error('[OneStopView] 错误详情:', info)
   ElMessage.error(`一站式上货加载失败: ${err.message}`)
   return false // 阻止错误冒泡
+})
+
+onBeforeUnmount(() => {
+  // 路由切走前：强制清理所有悬浮态，防止页面空白
+  showScanTip.value = false           // 关闭 z-index:9999 的扫码悬浮条
+  showDecisionModal.value = false     // 关闭选品决策弹窗
+  // 若 Promise 还未 resolve，拒绝它防止 await 挂起
+  if (decisionModalResolve.value) {
+    decisionModalResolve.value(false)
+    decisionModalResolve.value = null
+  }
 })
 
 onUnmounted(() => {
@@ -1615,6 +2356,22 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
+/* ===== 货源链接提示栏 ===== */
+.url-hint {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.url-hint-divider {
+  height: 14px;
+  margin: 0 2px;
+  border-color: var(--border);
+}
+
 /* ===== 布局 ===== */
 .onestop-layout {
   display: grid;
@@ -1625,7 +2382,213 @@ onUnmounted(() => {
 .onestop-left { display: flex; flex-direction: column; gap: 16px; }
 .onestop-right { display: flex; flex-direction: column; gap: 16px; }
 
-/* ===== 步骤流程条 ===== */
+/* ===== 小白工作流状态条 ===== */
+.workflow-bar {
+  background: linear-gradient(135deg, rgba(8,91,156,.06) 0%, rgba(46,173,62,.04) 100%);
+  border: 2px solid rgba(8,91,156,.15);
+  border-radius: var(--r-xl);
+  padding: 18px 24px 16px;
+  margin-bottom: 8px;
+}
+.workflow-bar-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.wb-phase-label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.wb-phase-num {
+  font-size: 11px;
+  color: var(--brand);
+  font-weight: 700;
+  background: rgba(8,91,156,.1);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.wb-phase-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.wb-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.workflow-steps {
+  display: flex;
+  align-items: center;
+}
+.ws-item {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.ws-item:last-child { flex: 0; }
+.ws-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-stripe);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  z-index: 1;
+}
+.ws-done .ws-dot {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: white;
+}
+.ws-active .ws-dot {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(8,91,156,.15);
+}
+.ws-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.ws-active .ws-label { color: var(--brand); font-weight: 600; }
+.ws-done .ws-label { color: #22c55e; }
+.ws-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  margin: 0 8px;
+}
+.ws-line-done { background: #22c55e; }
+
+/* ===== 小白行动卡片 ===== */
+.action-card--primary {
+  border: 2px solid rgba(8,91,156,.2);
+  background: linear-gradient(180deg, rgba(8,91,156,.03) 0%, transparent 100%);
+}
+.ac-hero {
+  text-align: center;
+  padding: 16px 0 20px;
+}
+.ac-hero-icon { font-size: 52px; margin-bottom: 8px; }
+.ac-hero-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.ac-hero-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.ac-input-wrapper { margin: 16px 0; }
+.ac-platform-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  justify-content: center;
+}
+.ac-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.ac-running-header {
+  text-align: center;
+  padding: 16px 0 20px;
+}
+.ac-running-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+.ac-running-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.ac-running-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8px;
+}
+.acr-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.acr-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.acr-done .acr-dot { background: #22c55e; border-color: #22c55e; color: white; }
+.acr-current .acr-dot { background: var(--brand); border-color: var(--brand); color: white; }
+.acr-current { color: var(--text-primary); font-weight: 600; }
+.ac-confirm-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+.ac-confirm-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.ac-confirm-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.ac-confirm-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 12px;
+}
+.ac-compliance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #166534;
+  margin-bottom: 14px;
+}
+.ac-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ===== 步骤流程条（资深模式保留）===== */
 .step-flow {
   display: flex;
   align-items: center;
@@ -1840,8 +2803,59 @@ onUnmounted(() => {
   white-space: pre-wrap;
 }
 .ao-features { display: flex; flex-wrap: wrap; gap: 4px; }
+.ao-fail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
 
-/* ===== 合规结果 ===== */
+/* ===== AI 生图区域 ===== */
+.ai-image-gen-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.aig-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.aig-preview {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px;
+  background: var(--bg-page);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.aig-preview-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.aig-preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aig-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+}
+
 .compliance-errors, .compliance-warnings { margin-bottom: 10px; }
 .compliance-section-title {
   font-size: 12px;
@@ -1872,6 +2886,17 @@ onUnmounted(() => {
   color: #166534;
 }
 .compliance-passed p { margin: 8px 0 0; font-size: 13px; }
+.compliance-warnings--beginner,
+.compliance-errors--beginner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.compliance-warnings--beginner { background: #fef9c3; color: #854d0e; }
+.compliance-errors--beginner { background: #fee2e2; color: #991b1b; }
 
 /* ===== 上架结果 ===== */
 .listing-success {
@@ -2047,6 +3072,81 @@ onUnmounted(() => {
 .es-text { font-size: 11px; color: var(--text-muted); }
 .es-arrow { color: var(--border); font-size: 18px; }
 
+/* ===== 小白模式引导空状态 ===== */
+.empty-state-expert .empty-icon { text-align: center; }
+.beginner-hero {
+  text-align: center;
+  padding: 12px 0 20px;
+}
+.beginner-hero-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+.beginner-hero-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.beginner-hero-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.beginner-guides {
+  background: rgba(8,91,156,.04);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.beginner-guide-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.bgi-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--brand);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+.bgi-content { flex: 1; }
+.bgi-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.bgi-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.bgi-action { flex-shrink: 0; }
+.beginner-guide-divider {
+  height: 1px;
+  background: rgba(8,91,156,.1);
+  margin: 12px 0;
+}
+.beginner-quick-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+.page-desc--beginner {
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
 /* ===== 批量面板 ===== */
 .batch-panel { margin-bottom: 16px; }
 .batch-import-tabs { margin-bottom: 14px; }
@@ -2114,6 +3214,77 @@ onUnmounted(() => {
 
 /* ===== 资深模式高级配置 ===== */
 .advanced-config { margin-top: 4px; }
+
+/* ===== 爆品灵感推荐面板 ===== */
+.hot-inspiration-panel { margin-top: 4px; }
+
+.hot-inspiration-content { }
+
+.hot-insp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.hot-insp-tip {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.hot-goods-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.hot-goods-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-card);
+}
+
+.hot-goods-card:hover {
+  border-color: var(--brand);
+  box-shadow: 0 2px 8px rgba(8, 91, 156, 0.15);
+  transform: translateY(-1px);
+}
+
+.hot-goods-img {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--border);
+}
+
+.hot-goods-info {
+  padding: 8px 10px;
+}
+
+.hot-goods-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+.hot-goods-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ef4444;
+  margin-bottom: 2px;
+}
+
+.hot-goods-sales {
+  font-size: 11px;
+  color: #f97316;
+}
 .platform-opt {
   display: flex;
   align-items: center;
@@ -2684,5 +3855,97 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* ===== 物流方案推荐 ===== */
+.logistics-recommend-section {
+  margin-top: 12px;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.lrs-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0369a1;
+  margin-bottom: 10px;
+}
+
+.lrs-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lrs-plan {
+  background: white;
+  border: 1px solid #e0f2fe;
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.2s;
+}
+
+.lrs-plan.recommended {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+
+.lrs-plan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.lrs-plan-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.lrs-plan-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.lrs-plan-desc {
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 2px;
+}
+
+.lrs-plan-suitable {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ===== 上架成功物流提示 ===== */
+.listing-logistics-tip {
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 12px 0;
+}
+
+.llt-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c2410c;
+  margin-bottom: 4px;
+}
+
+.llt-text {
+  font-size: 12px;
+  color: #9a3412;
+}
+
+.llt-text strong {
+  color: #ea580c;
 }
 </style>

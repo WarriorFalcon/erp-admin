@@ -1,5 +1,117 @@
 <template>
-  <div class="dashboard-container">
+  <!-- 小白模式：简洁首页 -->
+  <div v-if="isNoviceMode" class="novice-home">
+    <!-- 顶部：模式切换 + 欢迎语 -->
+    <div class="home-header">
+      <div class="welcome-section">
+        <h1 class="welcome-title">欢迎回来，跨境卖家！</h1>
+        <p class="welcome-sub">辽宁跨境宝盒 · 一键跨境，一屏闭环</p>
+      </div>
+      <div class="mode-switcher">
+        <span class="mode-label">当前模式：</span>
+        <el-tag type="warning" effect="dark" size="large">小白模式</el-tag>
+        <el-button text @click="switchToSenior" class="switch-btn">
+          切换到资深模式
+          <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 核心指标卡片（仅3个） -->
+    <div class="core-stats">
+      <div class="stat-item" @click="router.push('/orders')">
+        <div class="stat-icon-wrapper blue">
+          <el-icon><ShoppingCart /></el-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.orderCount }}</div>
+          <div class="stat-label">今日订单</div>
+        </div>
+        <el-tag v-if="stats.pendingOrders > 0" type="danger" size="small" effect="dark">
+          待处理
+        </el-tag>
+      </div>
+
+      <div class="stat-item">
+        <div class="stat-icon-wrapper green">
+          <el-icon><Money /></el-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">¥{{ formatMoney(stats.salesAmount) }}</div>
+          <div class="stat-label">今日销售额</div>
+        </div>
+        <div class="stat-trend up">
+          <el-icon><ArrowUp /></el-icon>
+          <span>+8.3%</span>
+        </div>
+      </div>
+
+      <div class="stat-item warning" @click="router.push('/orders?status=pending_ship')">
+        <div class="stat-icon-wrapper orange">
+          <el-icon><Box /></el-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ stats.pendingOrders }}</div>
+          <div class="stat-label">待发货订单</div>
+        </div>
+        <el-tag v-if="stats.pendingOrders > 5" type="warning" size="small">繁忙</el-tag>
+      </div>
+    </div>
+
+    <!-- 两大核心入口按钮 -->
+    <div class="main-actions">
+      <div class="action-card primary" @click="router.push('/goods/listing')">
+        <div class="action-icon">
+          <el-icon><Upload /></el-icon>
+        </div>
+        <div class="action-content">
+          <h2 class="action-title">我要上货</h2>
+          <p class="action-desc">粘贴链接/扫码/拍照，一键完成商品上架</p>
+        </div>
+        <div class="action-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+
+      <div class="action-card success" @click="router.push('/orders?action=ship')">
+        <div class="action-icon">
+          <el-icon><Van /></el-icon>
+        </div>
+        <div class="action-content">
+          <h2 class="action-title">我要发货</h2>
+          <p class="action-desc">智能匹配物流，一键批量打单发货</p>
+        </div>
+        <div class="action-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI助手悬浮入口 -->
+    <div class="ai-hint" @click="$router.push('/goods/listing')">
+      <el-icon><MagicStick /></el-icon>
+      <span>有疑问？试试问AI助手「宝盒仔」</span>
+    </div>
+
+    <!-- 待办提醒 -->
+    <div v-if="stats.pendingOrders > 0 || stats.orderCount > 0" class="pending-tasks">
+      <div class="tasks-header">
+        <el-icon><Bell /></el-icon>
+        <span>待办提醒</span>
+      </div>
+      <div v-if="stats.pendingOrders > 0" class="task-item" @click="router.push('/orders?status=pending_ship')">
+        <span class="task-text">有 {{ stats.pendingOrders }} 笔订单待发货</span>
+        <el-tag type="danger" size="small">紧急</el-tag>
+      </div>
+      <div class="task-item" @click="router.push('/goods/listing')">
+        <span class="task-text">点击「我要上货」开始今日工作</span>
+        <el-tag type="success" size="small">建议</el-tag>
+      </div>
+    </div>
+  </div>
+
+  <!-- 资深模式：完整Dashboard -->
+  <div v-else class="dashboard-container">
     <!-- 顶部统计栏 -->
     <div class="stats-header">
       <div class="stat-card">
@@ -18,7 +130,7 @@
           </div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" v-loading="statsLoading">
         <div class="stat-icon green">
           <el-icon><Money /></el-icon>
         </div>
@@ -34,7 +146,7 @@
           </div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" v-loading="statsLoading">
         <div class="stat-icon orange">
           <el-icon><User /></el-icon>
         </div>
@@ -50,19 +162,19 @@
           </div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" v-loading="statsLoading">
         <div class="stat-icon purple">
           <el-icon><Timer /></el-icon>
         </div>
         <div class="stat-info">
-          <div class="stat-label">实时在线</div>
+          <div class="stat-label">待发货订单</div>
           <div class="stat-value">
-            <span class="number">{{ stats.onlineUsers }}</span>
-            <span class="unit">人</span>
+            <span class="number">{{ stats.pendingOrders }}</span>
+            <span class="unit">单</span>
           </div>
-          <div class="stat-trend up">
+          <div class="stat-trend" :class="stats.pendingOrders > 20 ? 'down' : 'up'">
             <el-icon><ArrowUp /></el-icon>
-            <span>+5.7%</span>
+            <span>{{ stats.pendingOrders > 20 ? '较多' : '正常' }}</span>
           </div>
         </div>
       </div>
@@ -72,7 +184,7 @@
     <div class="main-content">
       <!-- 左侧图表 -->
       <div class="left-panel">
-        <div class="chart-card">
+        <div class="chart-card" v-loading="salesLoading">
           <div class="chart-title">
             <span class="title-icon blue"></span>
             销售额趋势
@@ -176,7 +288,7 @@
             </div>
             <div class="order-count">{{ realtimeOrders.length }}条</div>
           </div>
-          <div class="order-list" ref="orderListRef">
+          <div class="order-list" ref="orderListRef" v-loading="ordersLoading" element-loading-text="加载订单中...">
             <div 
               class="order-item" 
               v-for="(order, index) in displayOrders" 
@@ -243,20 +355,44 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, defineAsyncComponent } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
   ArrowUp, ArrowDown, Location, ShoppingCart, Money, User, Timer,
-  MapLocation, Van, CircleCheck, Box, TrendCharts, Goods, Close
+  MapLocation, Van, CircleCheck, Box, TrendCharts, Goods, Close,
+  MagicStick, Bell, Upload, ArrowRight
 } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getPlatformIcon } from '@/utils/platformIcons'
+import request from '@/utils/request'
+import { useAppStore } from '@/stores/useAppStore'
+
+const router = useRouter()
+const appStore = useAppStore()
+
+// 判断是否为小白模式
+const isNoviceMode = computed(() => appStore.mode === 'novice')
+
+// 小白模式切换函数
+function switchToSenior() {
+  appStore.switchMode('senior')
+}
+
+// ====================  Mock 开关 ====================
+// 后端接口就绪后改为 false，优先走真实 API
+const USE_MOCK = true
+
+// ==================== 加载状态 ====================
+const statsLoading = ref(true)
+const ordersLoading = ref(true)
+const salesLoading = ref(true)
 
 // ==================== 统计数据 ====================
 const stats = reactive({
-  orderCount: 1547,
-  salesAmount: 9871.75,
-  avgOrderValue: 182.5,
-  onlineUsers: 328
+  orderCount: 0,
+  salesAmount: 0,
+  avgOrderValue: 0,
+  pendingOrders: 0,  // 替换 onlineUsers，更实用
 })
 
 // ==================== 选中地区 ====================
@@ -276,7 +412,25 @@ const regionData = {
 }
 
 // ==================== 实时订单 ====================
-const realtimeOrders = reactive([
+const realtimeOrders = reactive([])
+const newOrderCount = ref(0)
+const displayOrders = computed(() => realtimeOrders.slice(0, 8))
+
+function maskCustomer(name) {
+  if (!name) return '***'
+  if (name.length <= 2) return name + '***'
+  return name.slice(0, 1) + '***' + name.slice(-1)
+}
+
+// ==================== Mock 数据 ====================
+const MOCK_STATS = {
+  orderCount: 1547,
+  salesAmount: 9871.75,
+  avgOrderValue: 182.5,
+  pendingOrders: 23,
+}
+
+const MOCK_ORDERS = [
   { id: 1, platform: 'tiktok', customer: '张***', country: '中国', city: '深圳', amount: '299.00', time: '1分钟前' },
   { id: 2, platform: 'tiktok', customer: '李***', country: '马来西亚', city: '吉隆坡', amount: '187.50', time: '2分钟前' },
   { id: 3, platform: 'amazon', customer: 'John D.', country: '美国', city: '洛杉矶', amount: '456.00', time: '3分钟前' },
@@ -285,16 +439,11 @@ const realtimeOrders = reactive([
   { id: 6, platform: 'tiktok', customer: '刘***', country: '泰国', city: '曼谷', amount: '89.90', time: '6分钟前' },
   { id: 7, platform: 'amazon', customer: 'Emma W.', country: '英国', city: '伦敦', amount: '567.00', time: '7分钟前' },
   { id: 8, platform: 'tiktok', customer: '赵***', country: '中国', city: '杭州', amount: '199.00', time: '8分钟前' },
-  { id: 9, platform: 'shopee', customer: '林***', country: '印尼', city: '雅加达', amount: '156.80', time: '9分钟前' },
-  { id: 10, platform: 'tiktok', customer: '黄***', country: '马来西亚', city: '槟城', amount: '278.00', time: '10分钟前' },
-])
+]
 
-const newOrderCount = ref(2)
-const displayOrders = computed(() => realtimeOrders.slice(0, 8))
-
-function maskCustomer(name) {
-  if (name.length <= 2) return name + '***'
-  return name.slice(0, 1) + '***' + name.slice(-1)
+const MOCK_SALES_TREND = {
+  labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+  values: [120, 82, 191, 334, 290, 430, 310],
 }
 
 
@@ -312,15 +461,94 @@ function formatMoney(num) {
   return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+// ==================== API 数据拉取 ====================
+
+// 拉取统计数据
+async function fetchDashboardStats() {
+  if (USE_MOCK) {
+    Object.assign(stats, MOCK_STATS)
+    statsLoading.value = false
+    return
+  }
+  try {
+    const res = await request.get('/api/dashboard/stats')
+    // 约定字段：{ orderCount, salesAmount, avgOrderValue, pendingOrders }
+    Object.assign(stats, res.data)
+  } catch (e) {
+    console.warn('[Dashboard] 拉取统计数据失败，使用 Mock:', e)
+    Object.assign(stats, MOCK_STATS)
+  } finally {
+    statsLoading.value = false
+  }
+}
+
+// 拉取最近订单
+async function fetchRecentOrders() {
+  if (USE_MOCK) {
+    realtimeOrders.splice(0, realtimeOrders.length, ...MOCK_ORDERS)
+    ordersLoading.value = false
+    return
+  }
+  try {
+    const res = await request.get('/api/dashboard/recent-orders')
+    // 约定字段：[{ id, platform, customer, country, city, amount, time }]
+    realtimeOrders.splice(0, realtimeOrders.length, ...(res.data || []))
+  } catch (e) {
+    console.warn('[Dashboard] 拉取订单失败，使用 Mock:', e)
+    realtimeOrders.splice(0, realtimeOrders.length, ...MOCK_ORDERS)
+  } finally {
+    ordersLoading.value = false
+  }
+}
+
+// 拉取销售趋势
+async function fetchSalesTrend() {
+  if (USE_MOCK) {
+    return MOCK_SALES_TREND
+  }
+  try {
+    const res = await request.get('/api/dashboard/sales-trend')
+    return res.data  // 约定：{ labels: [], values: [] }
+  } catch (e) {
+    console.warn('[Dashboard] 拉取销售趋势失败，使用 Mock:', e)
+    return MOCK_SALES_TREND
+  }
+}
+
+// 新订单推送（WebSocket 替代轮询的后门；目前用轮询模拟）
+async function pollNewOrders() {
+  if (USE_MOCK) return  // Mock 模式下跳过长轮询
+  try {
+    const res = await request.get('/api/dashboard/new-orders-since', {
+      params: { since: realtimeOrders[0]?.id || 0 }
+    })
+    if (res.data?.length) {
+      realtimeOrders.unshift(...res.data)
+      if (realtimeOrders.length > 20) realtimeOrders.splice(20)
+      newOrderCount.value = res.data.length
+      setTimeout(() => { newOrderCount.value = 0 }, 1500)
+      // 更新统计
+      res.data.forEach(o => {
+        stats.orderCount++
+        stats.salesAmount += parseFloat(o.amount)
+      })
+      // 高亮地图
+      highlightRegion(res.data[0].country)
+    }
+  } catch (e) {
+    // 静默失败，不干扰用户
+  }
+}
+
 // ==================== 初始化图表 ====================
-function initSalesChart() {
+function initSalesChart(salesData) {
   salesChart = echarts.init(salesChartRef.value)
   const option = {
     backgroundColor: 'transparent',
     grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+      data: salesData.labels,
       axisLine: { lineStyle: { color: '#e0e6ed' } },
       axisLabel: { color: '#606266', fontSize: 11 }
     },
@@ -331,7 +559,7 @@ function initSalesChart() {
       axisLabel: { color: '#606266', fontSize: 11 }
     },
     series: [{
-      data: [120, 82, 191, 334, 290, 430, 310],
+      data: salesData.values,
       type: 'line',
       smooth: true,
       symbol: 'circle',
@@ -374,8 +602,9 @@ function initPlatformChart() {
 function highlightRegion(country) {
   if (regionData[country]) {
     selectedRegion.value = regionData[country]
-    // 高亮地图上的对应区域
-    if (mapChart) {
+    // 高亮地图上的对应区域（用局部变量捕获，防止组件卸载后访问已 dispose 的 chart）
+    const _mapChart = mapChart
+    if (_mapChart) {
       const countryMap = {
         '中国': 'China',
         '马来西亚': 'Malaysia',
@@ -387,15 +616,17 @@ function highlightRegion(country) {
       }
       const mapName = countryMap[country]
       if (mapName) {
-        mapChart.dispatchAction({
+        _mapChart.dispatchAction({
           type: 'highlight',
           name: mapName
         })
         setTimeout(() => {
-          mapChart.dispatchAction({
-            type: 'downplay',
-            name: mapName
-          })
+          if (_mapChart) {
+            _mapChart.dispatchAction({
+              type: 'downplay',
+              name: mapName
+            })
+          }
         }, 2000)
       }
     }
@@ -443,7 +674,7 @@ function initRegionChart() {
       }
     }]
   }
-  regionChart.setOption(option)
+  regionChart?.setOption(option)
 }
 
 async function initWorldMap() {
@@ -564,47 +795,36 @@ async function initWorldMap() {
   })
 }
 
-// ==================== 模拟实时数据更新 ====================
+// ==================== 真实数据轮询 ====================
 let timers = []
 
 function startRealtimeUpdate() {
-  // 模拟新订单
-  timers.push(setInterval(() => {
-    const platforms = ['tiktok', 'amazon', 'shopee']
-    const countries = ['中国', '马来西亚', '美国', '新加坡', '泰国', '印尼', '英国']
-    const cities = ['深圳', '洛杉矶', '吉隆坡', '新加坡', '曼谷', '雅加达', '伦敦', '上海']
-    const names = ['张', '李', '王', '陈', '刘', '赵', '黄', '林', 'John', 'Emma']
-    
-    const newOrder = {
-      id: Date.now(),
-      platform: platforms[Math.floor(Math.random() * platforms.length)],
-      customer: names[Math.floor(Math.random() * names.length)] + '***',
-      country: countries[Math.floor(Math.random() * countries.length)],
-      city: cities[Math.floor(Math.random() * cities.length)],
-      amount: (Math.random() * 500 + 50).toFixed(2),
-      time: '刚刚'
-    }
-    
-    realtimeOrders.unshift(newOrder)
-    if (realtimeOrders.length > 20) realtimeOrders.pop()
-    
-    newOrderCount.value = 1
-    setTimeout(() => newOrderCount.value = 0, 1000)
-    
-    // 更新统计
-    stats.orderCount++
-    stats.salesAmount += parseFloat(newOrder.amount)
-    
-    // 高亮地图对应区域
-    highlightRegion(newOrder.country)
-  }, 5000))
+  // 每 30 秒拉一次新订单（Mock 模式下跳过）
+  if (!USE_MOCK) {
+    timers.push(setInterval(() => {
+      pollNewOrders()
+    }, 30000))
+  }
 }
 
 // ==================== 生命周期 ====================
-onMounted(() => {
-  initSalesChart()
+onMounted(async () => {
+  // 1. 并行拉取所有数据
+  await Promise.all([
+    fetchDashboardStats(),
+    fetchRecentOrders(),
+  ])
+
+  // 2. 拉取销售趋势后再初始化图表
+  const salesData = await fetchSalesTrend()
+  salesLoading.value = false
+
+  // 3. 初始化图表
+  initSalesChart(salesData)
   initPlatformChart()
   initWorldMap()
+
+  // 4. 启动轮询（Mock 模式下内部跳过）
   startRealtimeUpdate()
   
   window.addEventListener('resize', () => {
@@ -617,14 +837,288 @@ onMounted(() => {
 
 onUnmounted(() => {
   timers.forEach(t => clearInterval(t))
-  salesChart?.dispose()
-  platformChart?.dispose()
-  mapChart?.dispose()
-  regionChart?.dispose()
+  if (salesChart) { salesChart.dispose(); salesChart = null }
+  if (platformChart) { platformChart.dispose(); platformChart = null }
+  if (mapChart) { mapChart.dispose(); mapChart = null }
+  if (regionChart) { regionChart.dispose(); regionChart = null }
 })
 </script>
 
 <style scoped>
+/* ==================== 小白模式首页样式 ==================== */
+.novice-home {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.welcome-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.welcome-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.mode-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.switch-btn {
+  color: var(--primary);
+  font-size: 13px;
+}
+
+.core-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stat-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(8, 91, 156, 0.1);
+}
+
+.stat-item.warning {
+  border-color: #E6A23C;
+  background: #FDF6EC;
+}
+
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.stat-icon-wrapper.blue {
+  background: rgba(64, 158, 255, 0.1);
+  color: #409EFF;
+}
+
+.stat-icon-wrapper.green {
+  background: rgba(103, 194, 58, 0.1);
+  color: #67C23A;
+}
+
+.stat-icon-wrapper.orange {
+  background: rgba(230, 162, 60, 0.1);
+  color: #E6A23C;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.stat-trend {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.stat-trend.up {
+  color: #67C23A;
+  background: rgba(103, 194, 58, 0.1);
+}
+
+.main-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 28px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0.1;
+  transform: translate(40%, -40%);
+}
+
+.action-card.primary {
+  background: linear-gradient(135deg, #085B9C 0%, #0D7BD6 100%);
+  color: #fff;
+}
+
+.action-card.primary::before {
+  background: #fff;
+}
+
+.action-card.success {
+  background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
+  color: #fff;
+}
+
+.action-card.success::before {
+  background: #fff;
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.action-icon {
+  width: 64px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.action-content {
+  flex: 1;
+}
+
+.action-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.action-desc {
+  font-size: 14px;
+  opacity: 0.9;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.action-arrow {
+  font-size: 24px;
+  opacity: 0.7;
+}
+
+.ai-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(64, 158, 255, 0.08);
+  border: 1px dashed rgba(64, 158, 255, 0.3);
+  border-radius: 8px;
+  color: var(--primary);
+  font-size: 14px;
+  margin-bottom: 24px;
+  cursor: pointer;
+}
+
+.ai-hint:hover {
+  background: rgba(64, 158, 255, 0.12);
+}
+
+.pending-tasks {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.tasks-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.task-item:hover {
+  background: var(--bg-hover);
+  margin: 0 -16px;
+  padding: 10px 16px;
+}
+
+.task-text {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+/* ==================== 资深模式Dashboard样式 ==================== */
 .dashboard-container {
   min-height: 100vh;
   background: #f5f7fa;

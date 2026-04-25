@@ -29,7 +29,7 @@
           </div>
           <div class="header-info">
             <span class="header-name">小辽</span>
-            <span class="header-sub">拓岳AI · 智能助手</span>
+            <span class="header-sub">Ruitalk AI · 智能助手</span>
           </div>
           <div class="header-controls">
             <el-button text size="small" @click.stop="minimize" title="最小化">
@@ -58,7 +58,7 @@
         <div v-if="messages.length === 0 && !thinking" class="welcome-screen">
           <img v-if="mascotSrc" :src="mascotSrc" class="welcome-img" alt="小辽" />
           <div class="welcome-greet">你好，我是小辽 👋</div>
-          <div class="welcome-sub">拓岳AI驱动，跨境电商全能助手</div>
+          <div class="welcome-sub">Ruitalk AI驱动，跨境电商全能助手</div>
           <div class="quick-prompts">
             <div class="quick-title">快捷指令</div>
             <div class="quick-grid">
@@ -121,7 +121,7 @@
               {{ thinking ? '思考中' : '发送' }}
             </el-button>
           </div>
-          <div class="input-hint">Ctrl+Enter 发送 · 小辽由拓岳AI驱动</div>
+          <div class="input-hint">Ctrl+Enter 发送 · 小辽由 Ruitalk AI 驱动</div>
         </div>
       </div>
     </Transition>
@@ -137,7 +137,7 @@ import {
   Document, TrendCharts, ChatDotRound
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { tuoyueChat } from '@/api/ai'
+import { sendMessage } from '@/api/ruitalk'
 
 // ── Props ──────────────────────────────────────────────
 defineProps({
@@ -223,7 +223,7 @@ const unreadCount = ref(0)
 const bodyRef = ref(null)
 
 // ── 系统提示词（必须放函数前，因 send() 引用它）──────────────
-const SYSTEM_PROMPT = `你是「小辽」，辽宁跨境宝盒ERP系统的AI助手，基于拓岳AI大模型。
+const SYSTEM_PROMPT = `你是「小辽」，辽宁跨境宝盒ERP系统的AI助手，基于Ruitalk金牌客服系统。
 
 你的能力范围：
 1. 商品运营：标题/描述/卖点生成（支持中英文）
@@ -267,18 +267,20 @@ async function send() {
   scrollBottom()
 
   try {
-    console.log('[小辽] 正在调用拓岳AI...')
+    console.log('[小辽] 正在调用 Ruitalk AI...')
     const history = messages.value.map(m => ({ role: m.role, content: m.content }))
-    const reply = await tuoyueChat(history, SYSTEM_PROMPT)
-    console.log('[小辽] 拓岳AI回复成功')
-    messages.value.push({ id: Date.now(), role: 'assistant', content: reply, actions: [] })
+    // 拼接系统提示词作为首条用户消息
+    const fullText = SYSTEM_PROMPT + '\n\n用户问题：' + text
+    const result = await sendMessage(fullText)
+    console.log('[小辽] Ruitalk AI 回复成功')
+    messages.value.push({ id: Date.now(), role: 'assistant', content: result.response, actions: [] })
   } catch (err) {
-    console.error('[小辽] 拓岳AI调用失败:', err.message)
+    console.error('[小辽] Ruitalk AI 调用失败:', err.message)
     const reply = await localCommand(text)
     messages.value.push({
       id: Date.now(),
       role: 'assistant',
-      content: reply + `\n\n⚠️ 拓岳AI暂时不可用（${err.message}），已切换本地模式。`,
+      content: reply + `\n\n⚠️ 小辽暂时不可用（${err.message}），已切换本地模式。`,
       actions: []
     })
   } finally {

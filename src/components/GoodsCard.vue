@@ -35,18 +35,6 @@
         <el-icon><Picture /></el-icon>
       </div>
 
-      <!-- 拖拽提示：悬停时显示 -->
-      <div class="drag-hint">
-        <el-icon><Rank /></el-icon>
-        <span>按住拖拽上货</span>
-      </div>
-
-      <!-- 拖拽中提示 -->
-      <div v-if="isDragging" class="drag-tip">
-        <el-icon class="is-loading"><Rank /></el-icon>
-        <span>放开即上货至目标平台</span>
-      </div>
-
       <!-- 平台标签 -->
       <div v-if="goods.platforms && goods.platforms.length > 0" class="platform-tags">
         <el-tag
@@ -65,6 +53,16 @@
       <!-- 库存警告 -->
       <div v-if="goods.stock <= 0" class="stock-badge danger">缺货</div>
       <div v-else-if="goods.stock <= goods.low_stock_threshold" class="stock-badge warning">库存紧张</div>
+    </div>
+
+    <!-- 拖拽提示遮罩：移到外层，覆盖完整图片区域 -->
+    <div class="drag-hint">
+      <el-icon><Rank /></el-icon>
+      <span>按住拖拽上货</span>
+    </div>
+    <div v-if="isDragging" class="drag-tip">
+      <el-icon class="is-loading"><Rank /></el-icon>
+      <span>放开即上货至目标平台</span>
     </div>
 
     <!-- 商品信息 -->
@@ -268,14 +266,19 @@ function getProfitClass() {
   font-size: 32px;
 }
 
-/* 拖拽提示：悬停时显示 */
+/* 拖拽提示：移到外层，覆盖完整图片区域 */
 .drag-hint {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* 使用 padding-bottom 撑起与 .card-image 相同的正方形高度 */
+  height: 0;
+  padding-bottom: 100%;
   background: linear-gradient(
     135deg,
-    rgba(8, 91, 156, 0.75) 0%,
-    rgba(46, 173, 62, 0.75) 100%
+    rgba(8, 91, 156, 0.8) 0%,
+    rgba(46, 173, 62, 0.8) 100%
   );
   color: white;
   display: flex;
@@ -283,12 +286,13 @@ function getProfitClass() {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: none;
   letter-spacing: 0.5px;
+  z-index: 2;
 }
 
 .goods-card:hover .drag-hint {
@@ -298,11 +302,15 @@ function getProfitClass() {
 /* 拖拽中提示 */
 .drag-tip {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%;
   background: linear-gradient(
     135deg,
-    rgba(8, 91, 156, 0.85) 0%,
-    rgba(46, 173, 62, 0.85) 100%
+    rgba(8, 91, 156, 0.9) 0%,
+    rgba(46, 173, 62, 0.9) 100%
   );
   color: white;
   display: flex;
@@ -310,8 +318,9 @@ function getProfitClass() {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
+  z-index: 3;
 }
 
 /* 平台标签 */

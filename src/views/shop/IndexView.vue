@@ -76,7 +76,13 @@
         <el-table-column label="平台" width="130" align="center">
           <template #default="{ row }">
             <div class="platform-cell">
-              <span class="platform-icon" :style="{ borderColor: row.color }">
+              <img
+                v-if="row.icon"
+                :src="row.icon"
+                class="platform-logo"
+                :alt="row.platformName"
+              />
+              <span v-else class="platform-icon" :style="{ borderColor: row.color }">
                 {{ row.icon }}
               </span>
               <span class="platform-name">{{ row.platformName }}</span>
@@ -152,13 +158,20 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getShopList, getAuthUrl, refreshAuth, unbindShop } from '@/api/shop'
+import { PLATFORM_ICONS } from '@/utils/platformIcons'
 
 const platforms = [
-  { name: '1688', code: '1688', icon: '🟠' },
-  { name: 'TikTok Shop', code: 'tiktok', icon: '🎵' },
-  { name: 'Amazon', code: 'amazon', icon: '🟠' },
-  { name: 'eBay', code: 'ebay', icon: '🔴' },
-  { name: 'Shopee', code: 'shopee', icon: '🔴' },
+  { name: 'Shopee', code: 'shopee', icon: PLATFORM_ICONS.shopee.icon },
+  { name: 'Temu', code: 'temu', icon: PLATFORM_ICONS.temu.icon },
+  { name: 'SHEIN', code: 'shein', icon: PLATFORM_ICONS.shein.icon },
+  { name: 'TikTok Shop', code: 'tiktok', icon: PLATFORM_ICONS.tiktok.icon },
+  { name: 'Amazon', code: 'amazon', icon: PLATFORM_ICONS.amazon.icon },
+  { name: 'eBay', code: 'ebay', icon: PLATFORM_ICONS.ebay.icon },
+  { name: '速卖通', code: 'aliexpress', icon: PLATFORM_ICONS.aliexpress.icon },
+  { name: 'Lazada', code: 'lazada', icon: PLATFORM_ICONS.lazada.icon },
+  { name: 'Wish', code: 'wish', icon: PLATFORM_ICONS.wish.icon },
+  { name: 'Mercado', code: 'mercado', icon: PLATFORM_ICONS.mercado.icon },
+  { name: 'Ozon', code: 'ozon', icon: PLATFORM_ICONS.ozon.icon },
 ]
 
 const loading = ref(false)
@@ -268,6 +281,7 @@ onMounted(loadData)
 .shop-title { font-weight: 600; color: var(--text-primary); }
 
 .platform-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.platform-logo { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 .platform-icon { font-size: 16px; }
 .platform-name { font-size: 12.5px; color: var(--text-secondary); }
 

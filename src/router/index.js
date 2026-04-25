@@ -41,6 +41,12 @@ const router = createRouter({
       meta: { title: '商品上货', icon: 'Upload' },
     },
     {
+      path: '/goods/hot',
+      name: 'goods-hot',
+      component: () => import('@/views/goods/HotProductsView.vue'),
+      meta: { title: '爆品推荐', icon: 'Lightning' },
+    },
+    {
       path: '/goods/onestop',
       name: 'goods-onestop',
       component: () => import('@/views/goods/OneStopView.vue'),
@@ -80,13 +86,6 @@ const router = createRouter({
       component: () => import('@/views/shop/IndexView.vue'),
       meta: { title: '店铺管理', icon: 'Shop' },
     },
-    // ==================== 达人检索 ====================
-    {
-      path: '/kol',
-      name: 'kol',
-      component: () => import('@/views/kol/Dashboard.vue'),
-      meta: { title: '达人检索', icon: 'User' },
-    },
     // ==================== 数据报表 ====================
     {
       path: '/reports',
@@ -94,13 +93,7 @@ const router = createRouter({
       component: () => import('@/views/reports/IndexView.vue'),
       meta: { title: '数据报表', icon: 'DataLine' },
     },
-    // ==================== 插件市场（P2） ====================
-    {
-      path: '/plugins',
-      name: 'plugins',
-      component: () => import('@/views/plugins/IndexView.vue'),
-      meta: { title: '插件市场', icon: 'Grid' },
-    },
+
   ],
 })
 

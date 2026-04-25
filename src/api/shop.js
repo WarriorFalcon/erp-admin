@@ -3,12 +3,16 @@
  * 包含平台授权列表、店铺信息等
  */
 
+import { PLATFORM_ICONS } from '@/utils/platformIcons'
+
 const platforms = [
-  { name: '1688', code: '1688', color: '#F55D23', icon: '🟠' },
-  { name: 'TikTok Shop', code: 'tiktok', color: '#00f2ea', icon: '🎵' },
-  { name: 'Amazon', code: 'amazon', color: '#FF9900', icon: '🟠' },
-  { name: 'eBay', code: 'ebay', color: '#E53238', icon: '🔴' },
-  { name: 'Shopee', code: 'shopee', color: '#EE4D2D', icon: '🔴' },
+  { name: 'Shopee', code: 'shopee', color: PLATFORM_ICONS.shopee.color, icon: PLATFORM_ICONS.shopee.icon },
+  { name: 'Temu', code: 'temu', color: PLATFORM_ICONS.temu.color, icon: PLATFORM_ICONS.temu.icon },
+  { name: 'SHEIN', code: 'shein', color: PLATFORM_ICONS.shein.color, icon: PLATFORM_ICONS.shein.icon },
+  { name: 'TikTok Shop', code: 'tiktok', color: PLATFORM_ICONS.tiktok.color, icon: PLATFORM_ICONS.tiktok.icon },
+  { name: 'Amazon', code: 'amazon', color: PLATFORM_ICONS.amazon.color, icon: PLATFORM_ICONS.amazon.icon },
+  { name: 'eBay', code: 'ebay', color: PLATFORM_ICONS.ebay.color, icon: PLATFORM_ICONS.ebay.icon },
+  { name: '速卖通', code: 'aliexpress', color: PLATFORM_ICONS.aliexpress.color, icon: PLATFORM_ICONS.aliexpress.icon },
 ]
 
 const shopStatuses = [
@@ -19,14 +23,14 @@ const shopStatuses = [
 ]
 
 const mockShops = [
-  { id: 1, name: '1688官方旗舰店', platformName: '1688', platformCode: '1688', color: '#F55D23', icon: '🟠', ...shopStatuses[0], account: 'seller_123456', bindTime: '2026-01-15', products: 234, todayOrders: 12 },
-  { id: 2, name: '1688分销店', platformName: '1688', platformCode: '1688', color: '#F55D23', icon: '🟠', ...shopStatuses[0], account: 'dist_789012', bindTime: '2026-02-20', products: 87, todayOrders: 5 },
-  { id: 3, name: 'TK美国本土店', platformName: 'TikTok Shop', platformCode: 'tiktok', color: '#00f2ea', icon: '🎵', ...shopStatuses[0], account: 'tk_us_store', bindTime: '2026-03-01', products: 156, todayOrders: 28 },
-  { id: 4, name: 'TK英国店', platformName: 'TikTok Shop', platformCode: 'tiktok', color: '#00f2ea', icon: '🎵', ...shopStatuses[1], account: 'tk_uk_store', bindTime: '2026-03-10', products: 42, todayOrders: 0 },
-  { id: 5, name: 'Amazon美国站', platformName: 'Amazon', platformCode: 'amazon', color: '#FF9900', icon: '🟠', ...shopStatuses[0], account: 'amaz_us_001', bindTime: '2026-01-20', products: 312, todayOrders: 19 },
-  { id: 6, name: 'Amazon英国站', platformName: 'Amazon', platformCode: 'amazon', color: '#FF9900', icon: '🟠', ...shopStatuses[2], account: 'amaz_uk_002', bindTime: '2025-11-10', products: 88, todayOrders: 0 },
-  { id: 7, name: 'eBay澳大利亚站', platformName: 'eBay', platformCode: 'ebay', color: '#E53238', icon: '🔴', ...shopStatuses[0], account: 'ebay_au', bindTime: '2026-02-05', products: 65, todayOrders: 7 },
-  { id: 8, name: 'Shopee马来西亚站', platformName: 'Shopee', platformCode: 'shopee', color: '#EE4D2D', icon: '🔴', ...shopStatuses[3], account: 'shp_my', bindTime: '', products: 0, todayOrders: 0 },
+  { id: 1, name: 'Shopee马来西亚店', platformName: 'Shopee', platformCode: 'shopee', color: PLATFORM_ICONS.shopee.color, icon: PLATFORM_ICONS.shopee.icon, ...shopStatuses[0], account: 'shp_my_001', bindTime: '2026-01-15', products: 234, todayOrders: 12 },
+  { id: 2, name: 'Temu美国店', platformName: 'Temu', platformCode: 'temu', color: PLATFORM_ICONS.temu.color, icon: PLATFORM_ICONS.temu.icon, ...shopStatuses[0], account: 'temu_us_001', bindTime: '2026-02-20', products: 87, todayOrders: 5 },
+  { id: 3, name: 'TK美国本土店', platformName: 'TikTok Shop', platformCode: 'tiktok', color: PLATFORM_ICONS.tiktok.color, icon: PLATFORM_ICONS.tiktok.icon, ...shopStatuses[0], account: 'tk_us_store', bindTime: '2026-03-01', products: 156, todayOrders: 28 },
+  { id: 4, name: 'TK英国店', platformName: 'TikTok Shop', platformCode: 'tiktok', color: PLATFORM_ICONS.tiktok.color, icon: PLATFORM_ICONS.tiktok.icon, ...shopStatuses[1], account: 'tk_uk_store', bindTime: '2026-03-10', products: 42, todayOrders: 0 },
+  { id: 5, name: 'Amazon美国站', platformName: 'Amazon', platformCode: 'amazon', color: PLATFORM_ICONS.amazon.color, icon: PLATFORM_ICONS.amazon.icon, ...shopStatuses[0], account: 'amaz_us_001', bindTime: '2026-01-20', products: 312, todayOrders: 19 },
+  { id: 6, name: 'Amazon英国站', platformName: 'Amazon', platformCode: 'amazon', color: PLATFORM_ICONS.amazon.color, icon: PLATFORM_ICONS.amazon.icon, ...shopStatuses[2], account: 'amaz_uk_002', bindTime: '2025-11-10', products: 88, todayOrders: 0 },
+  { id: 7, name: 'eBay澳大利亚站', platformName: 'eBay', platformCode: 'ebay', color: PLATFORM_ICONS.ebay.color, icon: PLATFORM_ICONS.ebay.icon, ...shopStatuses[0], account: 'ebay_au', bindTime: '2026-02-05', products: 65, todayOrders: 7 },
+  { id: 8, name: 'Shopee新加坡站', platformName: 'Shopee', platformCode: 'shopee', color: PLATFORM_ICONS.shopee.color, icon: PLATFORM_ICONS.shopee.icon, ...shopStatuses[3], account: 'shp_sg', bindTime: '', products: 0, todayOrders: 0 },
 ]
 
 /**

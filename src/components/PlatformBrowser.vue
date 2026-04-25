@@ -52,7 +52,7 @@
           <Transition name="indicator-fade">
             <div v-if="isDraggingExternal" class="drag-indicator">
               <div class="indicator-inner">
-                <el-icon><Scan /></el-icon>
+                <el-icon><Aim /></el-icon>
                 <span>检测到货源商品 → 放开即采集至一站式上货</span>
               </div>
             </div>
@@ -128,7 +128,7 @@
 
 <script setup>
 import { ref, computed, reactive, watch, nextTick } from 'vue'
-import { Close, Minus, Upload, Loading, MagicStick, Scan, Goods } from '@element-plus/icons-vue'
+import { Close, Minus, Upload, Loading, MagicStick, Aim, Goods } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 // ── State ──────────────────────────────────────────────────
@@ -158,7 +158,7 @@ function isSourcePlatform(platformKey) {
 const PLATFORM_URLS = {
   shopee: 'https://seller.shopee.cn/portal/home',
   temu: 'https://seller.temu.com/portal',
-  shein: 'https://seller.shein's.com/portal/home',
+  shein: "https://seller.shein.com/portal/home",
   tiktok: 'https://seller.tiktok.com/portal/home',
   aliexpress: 'https://sell.aliexpress.com',
   amazon: 'https://sellercentral.amazon.com',

@@ -334,7 +334,7 @@
           <template #header>
             <div class="card-header">
               <span>采集记录</span>
-              <el-link type="primary" :underline="false" size="small">查看全部</el-link>
+              <el-link type="primary" :underline="'never'" size="small">查看全部</el-link>
             </div>
           </template>
           <div class="history-list">

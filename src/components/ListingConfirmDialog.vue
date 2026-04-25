@@ -91,8 +91,23 @@
 
         <!-- 编辑表单 -->
         <el-form label-width="90px" size="default" class="listing-form">
-          <el-form-item label="目标平台">
+          <!-- 外部未传平台时显示选择器，已传则展示已选平台摘要 -->
+          <el-form-item v-if="showPlatformSelect" label="目标平台">
             <PlatformSelect v-model="selectedPlatforms" />
+          </el-form-item>
+          <el-form-item v-else label="目标平台">
+            <div class="platforms-summary">
+              <el-tag
+                v-for="pid in selectedPlatforms"
+                :key="pid"
+                size="small"
+                type="success"
+                effect="plain"
+              >
+                {{ pid }}
+              </el-tag>
+              <span class="platforms-hint">（来自一站式上货已选平台）</span>
+            </div>
           </el-form-item>
 
           <el-form-item label="上架价格">
@@ -217,6 +232,12 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  // 外部已选平台数组（来自一站式上货的 selectedTargets）
+  // 传入后不再显示 PlatformSelect，直接使用这些平台
+  targetPlatforms: {
+    type: Array,
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'success', 'failed'])
@@ -265,6 +286,11 @@ const profitClass = computed(() => {
   return 'profit-good'
 })
 
+// 是否显示平台选择器：外部未传 targetPlatforms 时才显示
+const showPlatformSelect = computed(() => {
+  return !props.targetPlatforms || props.targetPlatforms.length === 0
+})
+
 // ── 监听 goods 变化 ─────────────────────────────────────────
 watch(() => props.goods, async (newGoods) => {
   if (!newGoods) return
@@ -273,8 +299,10 @@ watch(() => props.goods, async (newGoods) => {
   editableGoods.value = JSON.parse(JSON.stringify(newGoods))
   listingQuantity.value = Math.min(newGoods.stock || 1, 10)
 
-  // 默认选中当前标签页的平台
-  if (props.targetTab?.platformKey) {
+  // 默认选中逻辑：优先用外部传入的平台，其次当前标签页，最后商品已有平台
+  if (props.targetPlatforms && props.targetPlatforms.length > 0) {
+    selectedPlatforms.value = [...props.targetPlatforms]
+  } else if (props.targetTab?.platformKey) {
     selectedPlatforms.value = [props.targetTab.platformKey]
   } else {
     selectedPlatforms.value = newGoods.platforms || []
@@ -302,42 +330,73 @@ async function runComplianceCheck() {
 }
 
 // ── AI优化 ────────────────────────────────────────────────
+// AI API 期望字段：name/category/material/style → editableGoods 是 title/类别/材质/风格
+function toAiGoods(goods) {
+  if (!goods) return {}
+  return {
+    name: goods.title || goods.name || '',
+    category: goods.category || '',
+    material: goods.material || goods.材质 || '',
+    style: goods.style || goods.风格 || '',
+    features: Array.isArray(goods.features)
+      ? goods.features.join('；')
+      : (goods.features || goods.卖点 || ''),
+    specs: goods.specs || goods.规格 || '',
+    targetMarket: goods.targetMarket || goods.目标市场 || '跨境电商通用',
+  }
+}
+
 async function optimizeTitle() {
-  if (!editableGoods.value) return
+  if (!editableGoods.value?.title) {
+    ElMessage.warning('请先填写商品名称')
+    return
+  }
   try {
-    const result = await aiApi.generateTitle(editableGoods.value)
+    const result = await aiApi.generateTitle(toAiGoods(editableGoods.value))
     if (result) {
       editableGoods.value.title = result
       aiOptimizedFields.value.push('标题')
     }
   } catch (err) {
-    ElMessage.error('标题优化失败')
+    ElMessage.error('标题优化失败：' + err.message)
   }
 }
 
 async function optimizeDescription() {
-  if (!editableGoods.value) return
+  if (!editableGoods.value?.title) {
+    ElMessage.warning('请先填写商品名称')
+    return
+  }
   try {
-    const result = await aiApi.generateDescription(editableGoods.value)
+    const result = await aiApi.generateDescription(toAiGoods(editableGoods.value))
     if (result) {
-      editableGoods.value.description = result
+      // description 可能是对象 { description, description_cn } 或直接是字符串
+      editableGoods.value.description = typeof result === 'string'
+        ? result
+        : (result.description || result.description_cn || '')
       aiOptimizedFields.value.push('描述')
     }
   } catch (err) {
-    ElMessage.error('描述优化失败')
+    ElMessage.error('描述优化失败：' + err.message)
   }
 }
 
 async function regenerateFeatures() {
-  if (!editableGoods.value) return
+  if (!editableGoods.value?.title) {
+    ElMessage.warning('请先填写商品名称')
+    return
+  }
   try {
-    const result = await aiApi.generateFeatures(editableGoods.value)
-    if (result && Array.isArray(result)) {
-      editableGoods.value.features = result
+    const result = await aiApi.generateFeatures(toAiGoods(editableGoods.value))
+    if (result) {
+      // API 可能返回数组或 { features: [...] }
+      editableGoods.value.features = Array.isArray(result)
+        ? result
+        : (result.features || [])
       aiOptimizedFields.value.push('卖点')
     }
   } catch (err) {
-    ElMessage.error('卖点生成失败')
+    ElMessage.error('卖点生成失败：' + err.message)
   }
 }
 
@@ -526,6 +585,18 @@ function handleClosed() {
 }
 
 /* 底部操作 */
+/* 已选平台摘要 */
+.platforms-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.platforms-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
 .dialog-footer {
   display: flex;
   justify-content: space-between;

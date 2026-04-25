@@ -352,8 +352,8 @@
         <el-form-item label="当前库存">{{ adjustItem.stock }}</el-form-item>
         <el-form-item label="调整类型">
           <el-radio-group v-model="adjustForm.type">
-            <el-radio label="in">入库</el-radio>
-            <el-radio label="out">出库</el-radio>
+            <el-radio value="in">入库</el-radio>
+            <el-radio value="out">出库</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="调整数量">
@@ -422,6 +422,7 @@ function getRowClassName({ row }) {
 }
 
 function getStockPercent(row) {
+  if (!row.stock || !row.safeStock) return 0
   if (row.safeStock === 0) return 100
   return Math.min(Math.round((row.stock / row.safeStock) * 100), 100)
 }

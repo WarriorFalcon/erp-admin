@@ -7,7 +7,7 @@
 import axios from 'axios'
 
 // ===================== 配置 =====================
-const USE_MOCK = false  // 生产模式：关闭 mock，对接真实 API
+const USE_MOCK = true  // 开发演示模式：启用 mock（后端 502 时临时使用）
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 const apiClient = axios.create({
