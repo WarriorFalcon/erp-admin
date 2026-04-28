@@ -8,10 +8,15 @@ export default defineConfig(({ mode }) => {
   // 加载 .env 文件（Vite config 中必须用 loadEnv，不能用 import.meta.env）
   const env = loadEnv(mode, process.cwd(), '')
 
+  // vite-plugin-vue-devtools 内部 birpc 通信在某些场景下会抛出
+  // "[birpc] function not found" 警告，干扰开发体验
+  // 默认关闭，需要调试时在 .env 设置 VITE_ENABLE_VUE_DEVTOOLS=true 后重启
+  const enableDevTools = env.VITE_ENABLE_VUE_DEVTOOLS === 'true'
+
   return {
     plugins: [
       vue(),
-      vueDevTools(),
+      ...(enableDevTools ? [vueDevTools()] : []),
     ],
     resolve: {
       alias: {

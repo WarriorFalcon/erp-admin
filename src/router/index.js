@@ -1,20 +1,29 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // 跨境ERP路由配置
-// 所有页面使用懒加载（路由级代码分割）
+// 核心页面使用直接导入（避免开发环境懒加载切换空白），非核心页面保留懒加载
+import DashboardView from '@/views/DashboardView.vue'
+import LoginView from '@/views/LoginView.vue'
+import OneStopView from '@/views/goods/OneStopView.vue'
+import OrderListView from '@/views/orders/ListView.vue'
+import ShopIndexView from '@/views/shop/IndexView.vue'
+import ReportsIndexView from '@/views/reports/IndexView.vue'
+import InventoryIndexView from '@/views/inventory/IndexView.vue'
+import LogisticsIndexView from '@/views/logistics/IndexView.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/login',
       name: 'login',
-      component: () => import('@/views/LoginView.vue'),
+      component: LoginView,
       meta: { title: '登录', hideLayout: true },
     },
     {
       path: '/',
       name: 'dashboard',
-      component: () => import('@/views/DashboardView.vue'),
+      component: DashboardView,
       meta: { title: '控制台', icon: 'Odometer' },
     },
     {
@@ -49,7 +58,7 @@ const router = createRouter({
     {
       path: '/goods/onestop',
       name: 'goods-onestop',
-      component: () => import('@/views/goods/OneStopView.vue'),
+      component: OneStopView,
       meta: { title: '一站式采集上货', icon: 'MagicStick' },
     },
     {
@@ -62,35 +71,35 @@ const router = createRouter({
     {
       path: '/orders',
       name: 'orders',
-      component: () => import('@/views/orders/ListView.vue'),
+      component: OrderListView,
       meta: { title: '订单管理', icon: 'List' },
     },
     // ==================== 库存模块 ====================
     {
       path: '/inventory',
       name: 'inventory',
-      component: () => import('@/views/inventory/IndexView.vue'),
+      component: InventoryIndexView,
       meta: { title: '库存管理', icon: 'Box' },
     },
     // ==================== 物流模块 ====================
     {
       path: '/logistics',
       name: 'logistics',
-      component: () => import('@/views/logistics/IndexView.vue'),
+      component: LogisticsIndexView,
       meta: { title: '物流追踪', icon: 'Van' },
     },
     // ==================== 店铺模块 ====================
     {
       path: '/shop',
       name: 'shop',
-      component: () => import('@/views/shop/IndexView.vue'),
+      component: ShopIndexView,
       meta: { title: '店铺管理', icon: 'Shop' },
     },
     // ==================== 数据报表 ====================
     {
       path: '/reports',
       name: 'reports',
-      component: () => import('@/views/reports/IndexView.vue'),
+      component: ReportsIndexView,
       meta: { title: '数据报表', icon: 'DataLine' },
     },
 

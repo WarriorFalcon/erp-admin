@@ -74,7 +74,6 @@
         </el-form-item>
         <el-form-item label="时间范围">
           <el-date-picker
-            id="orderDateRange"
             v-model="filterForm.dateRange"
             type="daterange"
             range-separator="至"

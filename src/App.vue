@@ -129,12 +129,9 @@
       </header>
 
       <!-- 页面内容 -->
+      <!-- 使用 :key 强制路由切换时重建组件，比 Transition mode=out-in 更稳定 -->
       <main class="page-main">
-        <RouterView v-slot="{ Component }">
-          <Transition name="fade-slide" mode="out-in">
-            <component :is="Component" />
-          </Transition>
-        </RouterView>
+        <RouterView :key="route.fullPath" />
       </main>
     </div>
 

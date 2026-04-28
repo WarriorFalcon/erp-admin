@@ -506,6 +506,9 @@ function setupPostMessageListener() {
 
 setupPostMessageListener()
 
+// ── 声明组件对外发射的事件（消除 Vue "Extraneous non-emits event listeners" 警告）
+const emit = defineEmits(['tab-change', 'goods-dropped', 'external-collect', 'close'])
+
 // ── 暴露方法给外部调用 ─────────────────────────────────────
 defineExpose({
   openTab,
