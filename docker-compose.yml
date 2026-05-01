@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./erp-admin
+      dockerfile: Dockerfile
+    container_name: erp-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - erp-network
+
+  backend:
+    image: python:3.11-slim
+    container_name: erp-backend
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    networks:
+      - erp-network
+
+networks:
+  erp-network:
+    driver: bridge

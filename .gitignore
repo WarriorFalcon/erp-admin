@@ -1,0 +1,78 @@
+# ==================== Python ====================
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+.venv/
+env/
+.env.local
+*.sqlite3
+
+# ==================== Node ====================
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==================== IDE ====================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ==================== Build ====================
+erp-admin/dist/
+*.tar.gz
+*.zip
+
+# ==================== OS ====================
+.DS_Store
+Thumbs.db
+
+# ==================== 业务无关文件 ====================
+飞书资料/
+会议纪要/
+聊天记录/
+沙滩玩具图/
+泳装图/
+卡通形象.png
+流程图.png
+前端alpha.zip
+图标/
+Ruitalk1 - 副本 (2)/
+Ruitalk1 - 副本 (2).zip
+jsongj_com_透明化图片.png
+
+# ==================== 测试脚本 ====================
+test_*.py
+test_*.json
+test_*.ps1
+*_test.py
+*_test.json
+quick_*.py
+api_test*.py
+api_test*.ps1
+integration_test*
+check_proxy.py
+workflow_test*
+ai_chat_test_result.json
+ai_test_report.json
+ai_test_result.json
+tuoyue_ai_test.json
+
+# ==================== 旧后端 ====================
+backend/
+backend-src/
+
+# ==================== 敏感文件 ====================
+.env
+.workbuddy/
+**/secrets.json
+**/credentials.json
+
