@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd erp-admin && npm install && npm run build",
+  "outputDirectory": "erp-admin/dist",
+  "installCommand": "",
+  "framework": "vite"
+}
