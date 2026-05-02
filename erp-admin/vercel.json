@@ -2,5 +2,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://tuoyue-tech.com/api/$1" },
+    { "source": "/swagger/(.*)", "destination": "https://tuoyue-tech.com/swagger/$1" },
+    { "source": "/((?!api|swagger).*)", "destination": "/index.html" }
+  ]
 }
