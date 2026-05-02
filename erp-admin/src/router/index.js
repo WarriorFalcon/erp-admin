@@ -110,6 +110,18 @@ const router = createRouter({
       component: ReportsIndexView,
       meta: { title: '数据报表', icon: 'DataLine' },
     },
+    {
+      path: '/settings/team',
+      name: 'team',
+      component: () => import('@/views/settings/TeamView.vue'),
+      meta: { title: '团队管理', icon: 'User' },
+    },
+    {
+      path: '/services/official',
+      name: 'official-services',
+      component: () => import('@/views/services/OfficialServicesView.vue'),
+      meta: { title: '官方服务', icon: 'Stamp' },
+    },
     // ==================== 达人模块 ====================
     {
       path: '/creator/search',

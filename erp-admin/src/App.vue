@@ -41,6 +41,17 @@
         </div>
 
         <div class="nav-divider" v-if="!isCollapse" />
+        <div class="nav-section-label nav-sub-section" v-if="!isCollapse">管理</div>
+        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/settings/team' }" @click="navigateTo('/settings/team')" :title="isCollapse ? '团队管理' : ''">
+          <el-icon><User /></el-icon>
+          <span v-if="!isCollapse">团队管理</span>
+        </div>
+        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/services/official' }" @click="navigateTo('/services/official')" :title="isCollapse ? '官方服务' : ''">
+          <el-icon><Stamp /></el-icon>
+          <span v-if="!isCollapse">官方服务</span>
+        </div>
+
+        <div class="nav-divider" v-if="!isCollapse" />
         <div class="nav-section-label nav-sub-section" v-if="!isCollapse">运营</div>
         <div class="nav-item nav-sub-item" :class="{ active: route.path === '/orders' }" @click="navigateTo('/orders')" :title="isCollapse ? '订单管理' : ''">
           <el-icon><List /></el-icon>
@@ -133,6 +144,8 @@ const pageMetaMap = {
   '/goods/onestop': { title: '一站式采集上货', parent: '' },
   '/shop': { title: '店铺管理', parent: '' },
   '/reports': { title: '数据报表', parent: '' },
+  '/settings/team': { title: '团队管理', parent: '' },
+  '/services/official': { title: '官方服务', parent: '' },
   '/orders': { title: '订单管理', parent: '' },
   '/inventory': { title: '库存管理', parent: '' },
   '/logistics': { title: '物流追踪', parent: '' },

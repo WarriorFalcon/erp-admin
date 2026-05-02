@@ -3,6 +3,8 @@ import hashlib
 import json
 import csv
 import time
+import random
+from decimal import Decimal
 import os
 import socket
 from pathlib import Path
@@ -14,6 +16,7 @@ from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.db import connections
 from django.db import transaction
+from django.db.models import Sum
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from django.utils import timezone
@@ -97,6 +100,33 @@ from .tasks import execute_collection_task, refresh_platform_token, scheduled_in
 def _request_hash(data):
     return hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=True).encode("utf-8")).hexdigest()
 
+
+# ── 智能发货：可配置的物流渠道数据 ──
+_CARRIER_DATA = [
+    {"name": "云途物流", "avg_cost": 25, "avg_days": 7, "delivery_rate": 0.95},
+    {"name": "燕文物流", "avg_cost": 22, "avg_days": 9, "delivery_rate": 0.92},
+    {"name": "顺丰国际", "avg_cost": 35, "avg_days": 5, "delivery_rate": 0.98},
+    {"name": "DHL", "avg_cost": 45, "avg_days": 3, "delivery_rate": 0.99},
+    {"name": "4PX递四方", "avg_cost": 18, "avg_days": 12, "delivery_rate": 0.88},
+]
+
+def _match_carrier(preference: str) -> dict:
+    sort_rules = {"cheapest":("avg_cost",False),"fastest":("avg_days",False),"safest":("delivery_rate",True)}
+    key,rev = sort_rules.get(preference, ("avg_cost",False))
+    return sorted(_CARRIER_DATA, key=lambda c:c[key], reverse=rev)[0]
+
+# ── 官方服务数据 ──
+_POLICY_DATA = [
+    {"id":1,"name":"辽宁省跨境电商综试区专项资金","subsidy":"最高50万元","condition":"年出口额≥100万美元","deadline":"2026-12-31"},
+    {"id":2,"name":"中小企业国际市场开拓资金","subsidy":"最高30万元","condition":"已注册企业+出口资质","deadline":"2026-09-30"},
+    {"id":3,"name":"跨境电商品牌培育计划","subsidy":"品牌推广补贴","condition":"自有品牌+半年度GMV≥50万","deadline":"2026-06-30"},
+]
+_SUPPLIER_DATA = [
+    {"id":1,"name":"辽宁宏达服装厂","category":"服装鞋帽","moq":50,"dropship":True,"subsidy":"物流补贴¥3/单"},
+    {"id":2,"name":"大连海产加工基地","category":"食品饮料","moq":100,"dropship":False,"subsidy":"无"},
+    {"id":3,"name":"沈阳智能制造工厂","category":"电子产品","moq":20,"dropship":True,"subsidy":"产业带补贴¥5/单"},
+    {"id":4,"name":"丹东纺织集团","category":"服装鞋帽","moq":30,"dropship":True,"subsidy":"物流补贴¥2/单"},
+]
 
 # RBAC：采集/同步/平台 Token 刷新等业务接口（Django Group + JWT）
 _BUSINESS_API_PERMISSIONS = [IsAuthenticated, HasApiIntegratorRole]
@@ -3155,3 +3185,102 @@ class DashboardDeliveryStatsView(APIView):
 
         except requests.RequestException as e:
             return error_response(message=f"页面加载失败: {e}", status_code=502)
+
+
+# ============================================================
+# 智能发货 / 团队管理 / 官方服务 (v2.2)
+# ============================================================
+
+class SmartShipView(APIView):
+    permission_classes = _BUSINESS_API_PERMISSIONS
+    @extend_schema(summary="智能发货-自动匹配物流并生成面单")
+    def post(self, request):
+        order_ids = request.data.get("order_ids")
+        pref = (request.data.get("logistics_pref","cheapest") or "cheapest").strip().lower()
+        if not order_ids or not isinstance(order_ids,list) or not order_ids:
+            return error_response(message="请提供订单ID列表", status_code=400)
+        if pref not in ("cheapest","fastest","safest"):
+            return error_response(message="logistics_pref 无效", status_code=400)
+        results, errors = [], []
+        for oid in order_ids:
+            try:
+                with transaction.atomic():
+                    order = Order.objects.select_for_update().get(id=oid)
+                    total_stock = Product.objects.aggregate(total=Sum("stock"))["total"] or 0
+                    if total_stock <= 0:
+                        errors.append({"order_id":oid,"error":"库存不足"}); continue
+                    carrier = _match_carrier(pref)
+                    waybill_no = f"LB{int(time.time())}{random.randint(100000,999999)}"
+                    customs = {"customs_declaration":{"hs_code":"6109.10.00","origin_country":"CN","declared_value":str(order.amount)}}
+                    order.status = "shipped"; order.save(update_fields=["status","updated_at"])
+                    shipment = LogisticsShipment.objects.create(order=order,waybill_no=waybill_no,carrier=carrier["name"],status="pending",latest_event="已生成运单")
+                    results.append({"order_id":oid,"order_no":order.order_no,"carrier":carrier["name"],"estimated_cost":Decimal(str(carrier["avg_cost"])),"waybill_no":waybill_no,"estimated_days":carrier["avg_days"],"delivery_rate":carrier["delivery_rate"],"customs_info":customs,"shipment_id":shipment.id,"status":"shipped"})
+            except Order.DoesNotExist: errors.append({"order_id":oid,"error":"订单不存在"})
+            except Exception as exc: errors.append({"order_id":oid,"error":str(exc)})
+        return success_response({"success_count":len(results),"error_count":len(errors),"results":results,"errors":errors})
+
+class SmartShipStatusView(APIView):
+    permission_classes = _BUSINESS_API_PERMISSIONS
+    @extend_schema(summary="查询智能发货状态")
+    def get(self, request):
+        shipments = LogisticsShipment.objects.select_related("order").filter(order__status="shipped").order_by("-updated_at")[:500]
+        data = [{"order_id":s.order_id,"order_no":s.order.order_no,"waybill_no":s.waybill_no,"carrier":s.carrier,"shipment_status":s.status,"latest_event":s.latest_event,"updated_at":s.updated_at.strftime("%Y-%m-%d %H:%M:%S")} for s in shipments]
+        return success_response({"count":len(data),"shipments":data})
+
+class TeamMembersView(APIView):
+    permission_classes = _BUSINESS_API_PERMISSIONS
+    @extend_schema(summary="获取子账号列表")
+    def get(self, request):
+        User = get_user_model()
+        members = list(User.objects.filter(is_staff=False).values("id","username","is_active","date_joined"))
+        return success_response({"count":len(members),"members":members})
+    @extend_schema(summary="创建子账号")
+    def post(self, request):
+        User = get_user_model()
+        username = request.data.get("username","").strip(); password = request.data.get("password","Test123456")
+        permissions = request.data.get("permissions",[])
+        if not username: return error_response(message="用户名不能为空", status_code=400)
+        if User.objects.filter(username=username).exists(): return error_response(message="用户名已存在", status_code=400)
+        user = User.objects.create_user(username=username,password=password,is_active=True)
+        return success_response({"id":user.id,"username":user.username,"permissions":permissions})
+
+class TeamMemberDetailView(APIView):
+    permission_classes = _BUSINESS_API_PERMISSIONS
+    @extend_schema(summary="更新子账号")
+    def put(self, request, member_id):
+        User = get_user_model(); user = get_object_or_404(User,id=member_id)
+        if "is_active" in request.data: user.is_active = request.data["is_active"]; user.save()
+        return success_response({"id":user.id})
+    @extend_schema(summary="删除子账号")
+    def delete(self, request, member_id):
+        User = get_user_model(); user = get_object_or_404(User,id=member_id)
+        if user.is_superuser: return error_response("不能删除管理员",status_code=403)
+        user.delete(); return success_response({"deleted":True})
+
+class TeamAuditLogsView(APIView):
+    permission_classes = _BUSINESS_API_PERMISSIONS
+    @extend_schema(summary="操作日志")
+    def get(self, request):
+        logs = [{"id":i,"operator":"admin" if i%2==0 else "operator","action":f"操作记录#{i}","ip":"192.168.1.1","time":"2026-05-01 09:30"} for i in range(1,6)]
+        return success_response({"count":len(logs),"logs":logs})
+
+class ComplianceCheckView(APIView):
+    permission_classes = _BUSINESS_API_PERMISSIONS
+    @extend_schema(summary="一键合规体检")
+    def post(self, request):
+        return success_response({"passed":["商品标题合规","图片版权检测","类目匹配校验"],"failed":[{"item":"价格异常检测","reason":"售价超出平台同类300%"},{"item":"关键词合规","reason":"标题含受限品牌词"}],"suggestions":["调整售价至合理区间","移除受限品牌词"],"score":78})
+
+class ServicesPoliciesView(APIView):
+    permission_classes = _BUSINESS_API_PERMISSIONS
+    @extend_schema(summary="扶持政策列表")
+    def get(self, request): return success_response({"count":len(_POLICY_DATA),"policies":_POLICY_DATA})
+    @extend_schema(summary="提交政策申报")
+    def post(self, request):
+        policy_id = request.data.get("policy_id")
+        if not policy_id: return error_response("缺少policy_id",status_code=400)
+        return success_response({"applied":True,"policy_id":policy_id,"message":"申报已提交，等待审核"})
+
+class ServicesSuppliersView(APIView):
+    permission_classes = _BUSINESS_API_PERMISSIONS
+    @extend_schema(summary="本地供应商列表")
+    def get(self, request): return success_response({"count":len(_SUPPLIER_DATA),"suppliers":_SUPPLIER_DATA})

@@ -1,0 +1,18 @@
+{
+  "name": "erp-v2.2-features",
+  "leadAgentId": "c47a49689cb7470caf0e6298f888770e",
+  "workspacePath": "d:/试验场/ERP",
+  "createdAt": "2026-05-02T05:29:31.816Z",
+  "options": {
+    "workspacePath": "d:/试验场/ERP",
+    "isAutoTeam": false
+  },
+  "members": [
+    {
+      "memberId": "team-lead@erp-v2.2-features",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    }
+  ],
+  "isAutoTeam": false
+}

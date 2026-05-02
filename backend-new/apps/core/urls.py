@@ -50,6 +50,15 @@ from .views import (
     OrderAddressUpdateView,
     OrderStatusUpdateView,
     OrderRemarkView,
+    SmartShipView,
+    SmartShipStatusView,
+    # 智能发货 / 团队 / 服务
+    TeamMembersView,
+    TeamMemberDetailView,
+    TeamAuditLogsView,
+    ComplianceCheckView,
+    ServicesPoliciesView,
+    ServicesSuppliersView,
     # 物流
     LogisticsShipmentsView,
     LogisticsTrackView,
@@ -158,6 +167,17 @@ _common_urls = [
     path("v1/collect/export/", CollectExportView.as_view(), name="collect-export"),
     path("v1/collect/rules/", ScrapeRulesView.as_view(), name="collect-rules"),
     path("v1/proxy/page/", PageProxyView.as_view(), name="proxy-page"),
+    # ── 智能发货 ──
+    path("orders/smart-ship/", SmartShipView.as_view(), name="orders-smart-ship"),
+    path("orders/smart-ship/status/", SmartShipStatusView.as_view(), name="orders-smart-ship-status"),
+    # ── 团队管理 ──
+    path("team/members/", TeamMembersView.as_view(), name="team-members"),
+    path("team/members/<int:member_id>/", TeamMemberDetailView.as_view(), name="team-member-detail"),
+    path("team/audit-logs/", TeamAuditLogsView.as_view(), name="team-audit-logs"),
+    # ── 官方服务 ──
+    path("services/compliance-check/", ComplianceCheckView.as_view(), name="services-compliance-check"),
+    path("services/policies/", ServicesPoliciesView.as_view(), name="services-policies"),
+    path("services/suppliers/", ServicesSuppliersView.as_view(), name="services-suppliers"),
     path("logistics/shipments/", LogisticsShipmentsView.as_view(), name="logistics-shipments"),
     path("logistics/track/<str:waybill>", LogisticsTrackView.as_view(), name="logistics-track"),
     path("logistics/webhook", LogisticsWebhookView.as_view(), name="logistics-webhook"),
