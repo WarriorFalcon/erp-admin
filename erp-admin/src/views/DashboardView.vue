@@ -664,24 +664,17 @@ async function initWorldMap() {
 
   if (!worldMapRef.value) return
   mapChart = echarts.init(worldMapRef.value)
-  
-  const mapData = [
-    { name: 'China', value: 456, cnName: '中国' },
-    { name: 'United States', value: 328, cnName: '美国' },
-    { name: 'United Kingdom', value: 156, cnName: '英国' },
-    { name: 'Germany', value: 89, cnName: '德国' },
-    { name: 'France', value: 76, cnName: '法国' },
-    { name: 'Japan', value: 234, cnName: '日本' },
-    { name: 'South Korea', value: 178, cnName: '韩国' },
-    { name: 'Singapore', value: 145, cnName: '新加坡' },
-    { name: 'Malaysia', value: 234, cnName: '马来西亚' },
-    { name: 'Thailand', value: 189, cnName: '泰国' },
-    { name: 'Indonesia', value: 267, cnName: '印尼' },
-    { name: 'Australia', value: 67, cnName: '澳洲' },
-    { name: 'Canada', value: 54, cnName: '加拿大' },
-    { name: 'Brazil', value: 43, cnName: '巴西' },
-    { name: 'India', value: 198, cnName: '印度' },
-  ]
+
+  // 从后端 API 获取真实订单分布数据
+  let mapData = []
+  try {
+    const res = await request.get('/api/dashboard/world-map-orders/')
+    mapData = (res?.data?.map_data || []).map(d => ({ name: d.name, value: d.value }))
+  } catch {
+    mapData = [{ name: 'China', value: 0 }]
+  }
+
+  const maxVal = Math.max(...mapData.map(d => d.value), 1)
 
   const option = {
     backgroundColor: 'transparent',
@@ -707,7 +700,7 @@ async function initWorldMap() {
     },
     visualMap: {
       min: 0,
-      max: 500,
+      max: maxVal,
       left: 'left',
       bottom: 'bottom',
       text: ['高', '低'],

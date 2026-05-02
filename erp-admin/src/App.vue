@@ -106,6 +106,23 @@
               <span>{{ appStore.modeLabel }}</span>
             </div>
           </el-tooltip>
+          <el-dropdown trigger="click" @command="handleUserCommand">
+            <div class="user-avatar">
+              <el-icon><UserFilled /></el-icon>
+              <span class="user-name">{{ userName }}</span>
+              <el-icon><ArrowDown /></el-icon>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="profile">
+                  <el-icon><User /></el-icon> 个人中心
+                </el-dropdown-item>
+                <el-dropdown-item command="logout" divided>
+                  <el-icon><SwitchButton /></el-icon> 退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </header>
       <main class="page-main">
@@ -121,6 +138,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import request from '@/utils/request'
 import AiAssistant from '@/components/AiAssistant.vue'
 import { setupGlobalScanner } from '@/composables/useScanner'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -153,7 +171,26 @@ const pageMetaMap = {
 const currentPageMeta = computed(() => pageMetaMap[route.path] || { title: '', parent: '' })
 const envMode = import.meta.env.MODE === 'production' ? 'prod' : 'dev'
 const envTagText = import.meta.env.MODE === 'production' ? '生产环境' : '开发环境'
+const userName = computed(() => {
+  const phone = localStorage.getItem('user_phone') || ''
+  return phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '用户'
+})
 function toggleAppMode() { appStore.toggleMode() }
+
+// 退出登录
+async function handleUserCommand(cmd) {
+  if (cmd === 'logout') {
+    try {
+      const refreshToken = localStorage.getItem('refresh_token')
+      await request.post('/api/auth/logout/', { refresh_token: refreshToken || '' })
+    } catch {}
+    localStorage.clear()
+    router.push('/login')
+  } else if (cmd === 'profile') {
+    ElMessage.info('个人中心功能即将上线')
+  }
+}
+
 onMounted(() => { setupGlobalScanner() })
 </script>
 
@@ -383,6 +420,19 @@ onMounted(() => { setupGlobalScanner() })
   align-items: center;
   gap: 12px;
 }
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background .2s;
+  color: #606266;
+}
+.user-avatar:hover { background: #f5f7fa; }
+.user-name { font-size: 13px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
 
 .env-chip {
   font-size: 11px;

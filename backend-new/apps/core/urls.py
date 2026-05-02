@@ -59,6 +59,9 @@ from .views import (
     ComplianceCheckView,
     ServicesPoliciesView,
     ServicesSuppliersView,
+    # 退出登录 / 地图数据
+    UserLogoutView,
+    WorldMapOrdersView,
     # 物流
     LogisticsShipmentsView,
     LogisticsTrackView,
@@ -178,6 +181,9 @@ _common_urls = [
     path("services/compliance-check/", ComplianceCheckView.as_view(), name="services-compliance-check"),
     path("services/policies/", ServicesPoliciesView.as_view(), name="services-policies"),
     path("services/suppliers/", ServicesSuppliersView.as_view(), name="services-suppliers"),
+    # ── 退出登录 / 全球订单分布 ──
+    path("auth/logout/", UserLogoutView.as_view(), name="auth-logout"),
+    path("dashboard/world-map-orders/", WorldMapOrdersView.as_view(), name="dashboard-world-map-orders"),
     path("logistics/shipments/", LogisticsShipmentsView.as_view(), name="logistics-shipments"),
     path("logistics/track/<str:waybill>", LogisticsTrackView.as_view(), name="logistics-track"),
     path("logistics/webhook", LogisticsWebhookView.as_view(), name="logistics-webhook"),

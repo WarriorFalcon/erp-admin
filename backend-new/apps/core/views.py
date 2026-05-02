@@ -3284,3 +3284,53 @@ class ServicesSuppliersView(APIView):
     permission_classes = _BUSINESS_API_PERMISSIONS
     @extend_schema(summary="本地供应商列表")
     def get(self, request): return success_response({"count":len(_SUPPLIER_DATA),"suppliers":_SUPPLIER_DATA})
+
+
+# ============================================================
+# 退出登录 + 全球订单分布 API
+# ============================================================
+
+class UserLogoutView(APIView):
+    """退出登录：将当前 JWT token 加入黑名单"""
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(summary="退出登录")
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh_token", "")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+        except Exception:
+            pass  # token 已过期也接受
+        return success_response({"message": "已退出登录"})
+
+
+class WorldMapOrdersView(APIView):
+    """全球订单分布：从 Order 表按 country 聚合"""
+    permission_classes = _BUSINESS_API_PERMISSIONS
+
+    @extend_schema(summary="全球订单分布地图数据")
+    def get(self, request):
+        from django.db.models import Count
+        # 从 shipping_address JSON 字段提取 country，聚合订单数
+        orders = list(Order.objects.values("shipping_address").annotate(count=Count("id"))[:500])
+        country_map = {
+            "中国": "China", "美国": "United States", "英国": "United Kingdom",
+            "德国": "Germany", "法国": "France", "日本": "Japan",
+            "韩国": "South Korea", "新加坡": "Singapore", "马来西亚": "Malaysia",
+            "泰国": "Thailand", "印尼": "Indonesia", "澳大利亚": "Australia",
+            "加拿大": "Canada", "巴西": "Brazil", "印度": "India",
+        }
+        country_counts = {}
+        for o in orders:
+            addr = o["shipping_address"] or {}
+            country_cn = addr.get("country", "中国")
+            en_name = country_map.get(country_cn, country_cn)
+            country_counts[en_name] = country_counts.get(en_name, 0) + o["count"]
+
+        # 构建返回数据，确保至少包含中国
+        if not country_counts:
+            country_counts = {"China": 0}
+        map_data = [{"name": k, "value": v} for k, v in country_counts.items()]
+        return success_response({"map_data": map_data, "total_orders": sum(country_counts.values())})
