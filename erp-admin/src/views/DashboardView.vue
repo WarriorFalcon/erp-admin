@@ -1,6 +1,6 @@
 <template>
   <!-- 新手引导向导 -->
-  <OnboardingWizard ref="onboardingRef" @finish="/* 向导完成 */" />
+  <OnboardingWizard ref="onboardingRef" />
   <!-- 小白模式：简洁首页 -->
   <div v-if="isNoviceMode" class="novice-home">
     <!-- 顶部：模式切换 + 欢迎语 -->
@@ -519,6 +519,7 @@ async function pollNewOrders() {
 
 // ==================== 初始化图表 ====================
 function initSalesChart(salesData) {
+  if (!salesChartRef.value) return  // 小白模式下容器不存在
   salesChart = echarts.init(salesChartRef.value)
   const option = {
     backgroundColor: 'transparent',
@@ -555,6 +556,7 @@ function initSalesChart(salesData) {
 }
 
 function initPlatformChart() {
+  if (!platformChartRef.value) return
   platformChart = echarts.init(platformChartRef.value)
   platformChart.setOption({
     backgroundColor: 'transparent',
@@ -658,6 +660,7 @@ async function initWorldMap() {
     console.log('使用简化地图')
   }
 
+  if (!worldMapRef.value) return
   mapChart = echarts.init(worldMapRef.value)
   
   const mapData = [

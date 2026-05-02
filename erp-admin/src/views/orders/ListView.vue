@@ -129,7 +129,7 @@
         </el-table-column>
         <el-table-column label="订单金额" width="110" align="right">
           <template #default="{ row }">
-            <span class="amount">¥{{ row.amount.toFixed(2) }}</span>
+            <span class="amount">¥{{ Number(row.amount).toFixed(2) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
@@ -256,7 +256,7 @@
           </div>
           <div class="order-total">
             <span>订单合计：</span>
-            <span class="total-amount">¥{{ currentOrder.amount.toFixed(2) }}</span>
+            <span class="total-amount">¥{{ Number(currentOrder.amount).toFixed(2) }}</span>
           </div>
         </div>
 

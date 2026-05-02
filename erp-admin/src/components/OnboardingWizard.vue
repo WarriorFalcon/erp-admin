@@ -41,7 +41,7 @@
         </el-form-item>
         <el-form-item label="目标市场">
           <el-checkbox-group v-model="settings.markets">
-            <el-checkbox v-for="m in markets" :key="m" :label="m">{{ m }}</el-checkbox>
+            <el-checkbox v-for="m in markets" :key="m" :label="m" :value="m">{{ m }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
         <el-form-item label="默认定价模板">
