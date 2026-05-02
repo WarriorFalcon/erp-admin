@@ -16,44 +16,35 @@
         </transition>
       </div>
 
-      <!-- 菜单 -->
+      <!-- 菜单（按经营链路: 准备→采集→运营→分析→管理） -->
       <nav class="nav-menu">
 
-        <div class="nav-section-label" v-if="!isCollapse">工作台</div>
+        <!-- ① 准备 -->
+        <div class="nav-section-label" v-if="!isCollapse">准备</div>
         <div class="nav-item" :class="{ active: route.path === '/' }" @click="navigateTo('/')" :title="isCollapse ? '控制台' : ''">
           <el-icon><Odometer /></el-icon>
           <span v-if="!isCollapse">控制台</span>
-        </div>
-
-        <div class="nav-section-label" v-if="!isCollapse">核心功能</div>
-        <div class="nav-item nav-item--highlight" :class="{ active: route.path === '/goods/onestop' }" @click="navigateTo('/goods/onestop')" :title="isCollapse ? '一站式采集上货' : ''">
-          <el-icon><MagicStick /></el-icon>
-          <span v-if="!isCollapse">一站式上货</span>
-          <span v-if="!isCollapse" class="nav-badge">NEW</span>
         </div>
         <div class="nav-item" :class="{ active: route.path === '/shop' }" @click="navigateTo('/shop')" :title="isCollapse ? '店铺管理' : ''">
           <el-icon><Shop /></el-icon>
           <span v-if="!isCollapse">店铺管理</span>
         </div>
-        <div class="nav-item" :class="{ active: route.path === '/reports' }" @click="navigateTo('/reports')" :title="isCollapse ? '数据报表' : ''">
-          <el-icon><DataLine /></el-icon>
-          <span v-if="!isCollapse">数据报表</span>
+
+        <!-- ② 选品采集 -->
+        <div class="nav-section-label" v-if="!isCollapse && appStore.isExpert">选品采集</div>
+        <div class="nav-item nav-item--highlight" :class="{ active: route.path === '/goods/onestop' }" @click="navigateTo('/goods/onestop')" :title="isCollapse ? '一站式采集上货' : ''">
+          <el-icon><MagicStick /></el-icon>
+          <span v-if="!isCollapse">一站式上货</span>
+          <span v-if="!isCollapse" class="nav-badge">核心</span>
+        </div>
+        <div v-if="appStore.isExpert" class="nav-item nav-sub-item" :class="{ active: route.path === '/creator/search' }" @click="navigateTo('/creator/search')" :title="isCollapse ? '达人检索' : ''">
+          <el-icon><UserFilled /></el-icon>
+          <span v-if="!isCollapse">达人选品</span>
         </div>
 
-        <div class="nav-divider" v-if="!isCollapse" />
-        <div class="nav-section-label nav-sub-section" v-if="!isCollapse">管理</div>
-        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/settings/team' }" @click="navigateTo('/settings/team')" :title="isCollapse ? '团队管理' : ''">
-          <el-icon><User /></el-icon>
-          <span v-if="!isCollapse">团队管理</span>
-        </div>
-        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/services/official' }" @click="navigateTo('/services/official')" :title="isCollapse ? '官方服务' : ''">
-          <el-icon><Stamp /></el-icon>
-          <span v-if="!isCollapse">官方服务</span>
-        </div>
-
-        <div class="nav-divider" v-if="!isCollapse" />
-        <div class="nav-section-label nav-sub-section" v-if="!isCollapse">运营</div>
-        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/orders' }" @click="navigateTo('/orders')" :title="isCollapse ? '订单管理' : ''">
+        <!-- ③ 运营履约 -->
+        <div class="nav-section-label" v-if="!isCollapse && appStore.isExpert">运营履约</div>
+        <div class="nav-item" :class="{ active: route.path === '/orders' }" @click="navigateTo('/orders')" :title="isCollapse ? '订单管理' : ''">
           <el-icon><List /></el-icon>
           <span v-if="!isCollapse">订单管理</span>
         </div>
@@ -66,15 +57,26 @@
           <span v-if="!isCollapse">物流追踪</span>
         </div>
 
-        <div class="nav-divider" v-if="!isCollapse" />
-        <div class="nav-section-label nav-sub-section" v-if="!isCollapse">达人</div>
-        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/creator/search' }" @click="navigateTo('/creator/search')" :title="isCollapse ? '达人检索' : ''">
-          <el-icon><UserFilled /></el-icon>
-          <span v-if="!isCollapse">达人检索</span>
+        <!-- ④ 数据分析 -->
+        <div class="nav-section-label" v-if="!isCollapse && appStore.isExpert">数据分析</div>
+        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/reports' }" @click="navigateTo('/reports')" :title="isCollapse ? '数据报表' : ''">
+          <el-icon><DataLine /></el-icon>
+          <span v-if="!isCollapse">数据报表</span>
         </div>
-        <div class="nav-item nav-sub-item" :class="{ active: route.path === '/creator/board' }" @click="navigateTo('/creator/board')" :title="isCollapse ? '达人看板' : ''">
+        <div v-if="appStore.isExpert" class="nav-item nav-sub-item" :class="{ active: route.path === '/creator/board' }" @click="navigateTo('/creator/board')" :title="isCollapse ? '达人看板' : ''">
           <el-icon><DataBoard /></el-icon>
           <span v-if="!isCollapse">达人看板</span>
+        </div>
+
+        <!-- ⑤ 管理与服务 -->
+        <div class="nav-section-label" v-if="!isCollapse && appStore.isExpert">管理与服务</div>
+        <div v-if="appStore.isExpert" class="nav-item nav-sub-item" :class="{ active: route.path === '/settings/team' }" @click="navigateTo('/settings/team')" :title="isCollapse ? '团队管理' : ''">
+          <el-icon><User /></el-icon>
+          <span v-if="!isCollapse">团队管理</span>
+        </div>
+        <div v-if="appStore.isExpert" class="nav-item nav-sub-item" :class="{ active: route.path === '/services/official' }" @click="navigateTo('/services/official')" :title="isCollapse ? '官方服务' : ''">
+          <el-icon><Stamp /></el-icon>
+          <span v-if="!isCollapse">官方服务</span>
         </div>
 
       </nav>

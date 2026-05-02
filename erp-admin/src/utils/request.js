@@ -81,12 +81,24 @@ service.interceptors.request.use(
 )
 
 // ==================== 响应拦截器 ====================
+const MAX_RETRIES = 2; const RETRY_DELAY = 1000
+
 service.interceptors.response.use(
   (response) => {
     return response.data
   },
   async (error) => {
     const originalRequest = error.config
+    if (!originalRequest) return Promise.reject(error)
+
+    // ── 网络错误/超时自动重试（最多2次）──
+    const isNetErr = !error.response || error.code === 'ECONNABORTED' || (error.message || '').includes('Network')
+    const rc = originalRequest._retryCount || 0
+    if (isNetErr && rc < MAX_RETRIES) {
+      originalRequest._retryCount = rc + 1
+      await new Promise(r => setTimeout(r, RETRY_DELAY * (rc + 1)))
+      return service(originalRequest)
+    }
 
     // ── 401 处理：尝试 Token 自动刷新 ──
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -133,34 +145,21 @@ service.interceptors.response.use(
       }
     }
 
-    // ── 通用错误处理 ──
-    let message = '请求失败，请稍后重试'
+    // ── 通用错误处理（含解决方案指引）──
+    let message = '请求失败，已自动重试2次仍失败，请检查网络或稍后重试'
     if (error.response) {
       const { status, data } = error.response
       switch (status) {
-        case 400:
-          message = data?.detail || data?.message || '请求参数错误'
-          break
-        case 401:
-          message = '登录已过期，请重新登录'
-          break
-        case 403:
-          message = '没有权限执行此操作'
-          break
-        case 404:
-          message = '请求的资源不存在'
-          break
-        case 422:
-          message = data?.detail || '数据验证失败'
-          break
-        case 500:
-          message = '服务器内部错误，请联系管理员'
-          break
-        default:
-          message = data?.detail || data?.message || `请求失败 (${status})`
+        case 400: message = data?.detail || data?.message || '请求参数错误，请检查输入内容'; break
+        case 401: message = '登录已过期，请重新登录'; break
+        case 403: message = '没有权限执行此操作，请联系管理员开通权限'; break
+        case 404: message = '接口地址不存在，请确认后端服务已启动且地址正确（开发环境: http://127.0.0.1:8000）'; break
+        case 422: message = data?.detail || '数据验证失败，请检查必填字段'; break
+        case 500: message = '服务器内部错误 [500]，请查看后端日志排查原因'; break
+        default: message = data?.detail || data?.message || `请求异常 [${status}]`
       }
     } else if (error.request) {
-      message = '网络连接失败，请检查网络'
+      message = '网络连接失败 [ERR_CONNECTION_REFUSED]，请检查：① 后端服务是否启动 ② 接口地址是否正确 ③ 网络是否正常'
     } else {
       message = error.message || '请求配置错误'
     }
