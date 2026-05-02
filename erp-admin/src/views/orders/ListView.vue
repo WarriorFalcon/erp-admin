@@ -147,18 +147,20 @@
             <span class="address-text">{{ row.address }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right" align="center">
+        <el-table-column label="操作" width="240" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" text size="small" @click="handleView(row)">详情</el-button>
-            <el-button
-              v-if="row.status === 'paid'"
-              type="success"
-              text
-              size="small"
-              @click="handleShip(row)"
-            >
-              发货
-            </el-button>
+            <el-button v-if="row.status === 'paid'" type="success" text size="small" @click="handleShip(row)">发货</el-button>
+            <el-button v-if="['pending','paid'].includes(row.status)" type="danger" text size="small" @click="handleCancel(row)">取消</el-button>
+            <el-dropdown trigger="click">
+              <el-button text size="small" type="info">更多<el-icon><ArrowDown /></el-icon></el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="handleAddress(row)"><el-icon><Edit /></el-icon> 修改地址</el-dropdown-item>
+                  <el-dropdown-item @click="handleRemark(row)"><el-icon><ChatLineSquare /></el-icon> 添加备注</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -316,9 +318,9 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Clock, Box, WarningFilled, CircleCheck, Download, Search, Document, User, Goods, Van, ChatLineRound } from '@element-plus/icons-vue'
-import { getOrderList, getOrderStatusCounts, getOrderDetail } from '@/api/order'
+import { getOrderList, getOrderStatusCounts, getOrderDetail, shipOrder, cancelOrder, updateOrderAddress, addOrderRemark, exportOrders } from '@/api/order'
 import { getPlatformIcon, getPlatformColor } from '@/utils/platformIcons'
 
 // ==================== 状态 ====================
@@ -476,13 +478,62 @@ async function handleView(row) {
   }
 }
 
-function handleShip(row) {
-  ElMessage.success(`订单 ${row.orderId} 发货操作已提交`)
-  loadData()
+async function handleShip(row) {
+  try {
+    await ElMessageBox.confirm(`确认对订单 ${row.order_no || row.id} 执行发货操作？`)
+    await shipOrder(row.id, {})
+    ElMessage.success('发货成功')
+    loadData()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '发货失败')
+  }
 }
 
-function handleExport() {
-  ElMessage.success('导出任务已创建，请稍后下载')
+async function handleCancel(row) {
+  try {
+    const { value: reason } = await ElMessageBox.prompt('请输入取消原因', '取消订单', { inputType: 'textarea' })
+    await cancelOrder(row.id, reason || '用户取消')
+    ElMessage.success('订单已取消')
+    loadData()
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '取消失败')
+  }
+}
+
+async function handleExport() {
+  try {
+    const params = { ...filterForm, page: 1, pageSize: 9999 }
+    const blob = await exportOrders(params)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = '订单导出.csv'; a.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success('导出完成')
+  } catch {
+    ElMessage.error('导出失败')
+  }
+}
+
+async function handleAddress(row) {
+  try {
+    const { value: addr } = await ElMessageBox.prompt('请输入新收货地址（JSON格式:{"country":"","city":"","street":""}）', '修改地址')
+    if (addr) {
+      await updateOrderAddress(row.id, JSON.parse(addr))
+      ElMessage.success('地址已更新')
+      loadData()
+    }
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('地址修改失败')
+  }
+}
+
+async function handleRemark(row) {
+  try {
+    const { value: remark } = await ElMessageBox.prompt('请输入备注', '添加备注')
+    if (remark) {
+      await addOrderRemark(row.id, remark)
+      ElMessage.success('备注已添加')
+    }
+  } catch {}
 }
 
 onMounted(() => {
