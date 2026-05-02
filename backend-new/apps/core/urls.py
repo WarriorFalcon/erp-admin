@@ -16,6 +16,8 @@ from .views import (
     SmsCodeVerifyView,
     UserLoginView,
     UserRegisterView,
+    UserRegisterSubmitView,
+    UserRegisterStatusView,
     UserTokenRefreshView,
     # 采集 & 同步
     CollectionTaskCreateView,
@@ -242,6 +244,8 @@ demo_urls = [
 _business_auth_urls = [
     path("auth/register", UserRegisterView.as_view(), name="auth-register"),
     path("auth/register/", UserRegisterView.as_view(), name="auth-register-slash"),
+    path("auth/register-submit/", UserRegisterSubmitView.as_view(), name="auth-register-submit"),
+    path("auth/register-status/", UserRegisterStatusView.as_view(), name="auth-register-status"),
     path("auth/login", UserLoginView.as_view(), name="auth-login-user"),
     path("auth/refresh", UserTokenRefreshView.as_view(), name="auth-refresh-user"),
     path("auth/me", AuthMeView.as_view(), name="auth-me"),

@@ -100,7 +100,7 @@
       <!-- 底部 -->
       <div class="login-footer">
         <span class="footer-text">还没有账号？</span>
-        <el-link type="primary" :underline="'never'">联系管理员开通</el-link>
+        <el-link type="primary" :underline="'never'" @click="$router.push('/register')">立即注册</el-link>
       </div>
     </div>
 

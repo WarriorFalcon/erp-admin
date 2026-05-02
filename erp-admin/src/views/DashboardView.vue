@@ -1,4 +1,6 @@
 <template>
+  <!-- 新手引导向导 -->
+  <OnboardingWizard ref="onboardingRef" @finish="/* 向导完成 */" />
   <!-- 小白模式：简洁首页 -->
   <div v-if="isNoviceMode" class="novice-home">
     <!-- 顶部：模式切换 + 欢迎语 -->
@@ -355,8 +357,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed, defineAsyncComponent } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import OnboardingWizard from '@/components/OnboardingWizard.vue'
 import { 
   ArrowUp, ArrowDown, Location, ShoppingCart, Money, User, Timer,
   MapLocation, Van, CircleCheck, Box, TrendCharts, Goods, Close,
@@ -773,8 +776,18 @@ function startRealtimeUpdate() {
   }, 30000))
 }
 
+// ==================== 新手引导 ====================
+const onboardingRef = ref(null)
+function checkOnboarding() {
+  if (!localStorage.getItem('onboarding_done') && isNoviceMode.value) {
+    setTimeout(() => onboardingRef.value?.show(), 500)
+  }
+}
+
 // ==================== 生命周期 ====================
 onMounted(async () => {
+  // 0. 新手引导检查
+  checkOnboarding()
   // 1. 并行拉取所有数据
   await Promise.all([
     fetchDashboardStats(),

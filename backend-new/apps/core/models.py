@@ -332,6 +332,34 @@ class LogisticsRateCard(models.Model):
 User = get_user_model()
 
 
+class RegistrationAudit(models.Model):
+    """注册审核记录（管理员后台审核）"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="registration_audits", null=True, blank=True)
+    phone = models.CharField(max_length=20, db_index=True)
+    user_type = models.CharField(max_length=20, default="personal")
+    real_name = models.CharField(max_length=64, default="", blank=True)
+    id_card = models.CharField(max_length=18, default="", blank=True)
+    company_name = models.CharField(max_length=128, default="", blank=True)
+    credit_code = models.CharField(max_length=32, default="", blank=True)
+    legal_person = models.CharField(max_length=64, default="", blank=True)
+    category = models.CharField(max_length=64, default="", blank=True)
+    markets = models.JSONField(default=list, blank=True)
+    experience = models.CharField(max_length=20, default="", blank=True)
+    status = models.CharField(max_length=20, default="pending", db_index=True)
+    reject_reason = models.CharField(max_length=500, default="", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.phone} - {self.status}"
+
+
+
+
+
 class UserPhoneBinding(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="phone_binding")
     country_code = models.CharField(max_length=8, default="86", db_index=True)

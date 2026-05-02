@@ -23,6 +23,12 @@ const router = createRouter({
       meta: { title: '登录', hideLayout: true },
     },
     {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/RegisterView.vue'),
+      meta: { title: '注册', hideLayout: true },
+    },
+    {
       path: '/',
       name: 'dashboard',
       component: DashboardView,

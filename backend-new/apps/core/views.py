@@ -41,6 +41,7 @@ from .models import (
     LogisticsTrackingEvent,
     Order,
     PlatformToken,
+    RegistrationAudit,
     UserPhoneBinding,
     AccountDeletionLog,
     SmsDispatchLog,
@@ -538,6 +539,77 @@ class UserLoginView(APIView):
             status_code=200,
             message="ok",
         )
+
+
+class UserRegisterSubmitView(APIView):
+    """注册申请提交（含实名认证信息，管理员审核）"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(summary="提交注册申请")
+    def post(self, request):
+        payload = request.data if isinstance(request.data, dict) else {}
+        phone = (payload.get("phone") or "").strip()
+        if not phone:
+            return error_response(message="phone is required", status_code=400)
+
+        User = get_user_model()
+        if User.objects.filter(username=phone).exists():
+            return error_response(message="该手机号已注册", status_code=400)
+
+        # 创建待审核用户
+        user = User.objects.create_user(
+            username=phone, password=payload.get("password", "123456"),
+            is_active=False,
+        )
+        # 保存注册附加信息到 profile（如果有）或 JSON 字段
+        # 保存注册附加信息
+        UserPhoneBinding.objects.update_or_create(
+            user=user, phone=phone,
+            defaults={"is_verified": False},
+        )
+
+        # 构造审核记录
+        RegistrationAudit.objects.create(
+            user=user,
+            phone=phone,
+            user_type=payload.get("user_type", "personal"),
+            real_name=payload.get("real_name", ""),
+            id_card=payload.get("id_card", ""),
+            company_name=payload.get("company_name", ""),
+            credit_code=payload.get("credit_code", ""),
+            legal_person=payload.get("legal_person", ""),
+            category=payload.get("category", ""),
+            markets=payload.get("markets", []),
+            experience=payload.get("experience", ""),
+            status="pending",
+        )
+        return success_response({"message": "注册申请已提交，请等待审核"})
+
+
+class UserRegisterStatusView(APIView):
+    """查询注册审核状态"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(summary="查询注册审核状态")
+    def get(self, request):
+        phone = request.query_params.get("phone", "").strip()
+        if not phone:
+            return error_response(message="phone is required", status_code=400)
+        try:
+            audit = RegistrationAudit.objects.filter(phone=phone).order_by("-id").first()
+            if not audit:
+                return success_response({"status": "not_found", "message": "未找到申请记录"})
+            return success_response({
+                "status": audit.status,
+                "reason": audit.reject_reason or "",
+                "message": "审核通过，请登录" if audit.status == "approved" else (
+                    "审核中，预计1-3个工作日" if audit.status == "pending" else "审核未通过"
+                ),
+            })
+        except Exception:
+            return success_response({"status": "not_found", "message": "未找到申请记录"})
 
 
 class UserTokenRefreshView(APIView):
