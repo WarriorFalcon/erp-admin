@@ -14,7 +14,7 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
   timeout: 15000,
   withCredentials: false,
 })
@@ -46,7 +46,7 @@ async function tryRefreshToken() {
 
   try {
     // 用裸 axios 请求，避免进入本拦截器死循环
-    const baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
+    const baseURL = import.meta.env.VITE_API_BASE_URL ?? ''
     const res = await axios.post(`${baseURL}/api/auth/refresh`, {
       refresh_token: refreshToken,
     }, { timeout: 10000 })
