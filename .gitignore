@@ -76,3 +76,4 @@ backend-src/
 **/secrets.json
 **/credentials.json
 
+.vercel
