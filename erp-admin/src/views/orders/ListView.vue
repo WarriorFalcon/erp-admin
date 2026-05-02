@@ -167,9 +167,10 @@
       <div class="pagination-wrap">
         <el-pagination
           v-model:current-page="pagination.page"
-          :page-size="pagination.pageSize"
+          v-model:page-size="pagination.pageSize"
           :total="total"
-          layout="total, prev, pager, next"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadData"
           @current-change="loadData"
         />
       </div>

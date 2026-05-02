@@ -210,9 +210,10 @@
       <div class="pagination-wrap">
         <el-pagination
           v-model:current-page="pagination.page"
-          :page-size="pagination.pageSize"
+          v-model:page-size="pagination.pageSize"
           :total="total"
-          layout="total, prev, pager, next"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadData"
           @current-change="loadData"
         />
       </div>
@@ -497,6 +498,7 @@ async function loadData() {
 }
 
 function getWarehouseClass(warehouse) {
+  if (!warehouse) return ''
   if (warehouse.includes('深圳')) return 'sz'
   if (warehouse.includes('广州')) return 'gz'
   if (warehouse.includes('英国') || warehouse.includes('海外')) return 'uk'

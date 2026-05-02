@@ -519,14 +519,16 @@ async function pollNewOrders() {
 
 // ==================== 初始化图表 ====================
 function initSalesChart(salesData) {
-  if (!salesChartRef.value) return  // 小白模式下容器不存在
+  if (!salesChartRef.value) return
+  const labels = (salesData && salesData.labels && salesData.labels.length) ? salesData.labels : ['暂无数据']
+  const values = (salesData && salesData.values && salesData.values.length) ? salesData.values : [0]
   salesChart = echarts.init(salesChartRef.value)
   const option = {
     backgroundColor: 'transparent',
     grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: salesData.labels,
+      data: labels,
       axisLine: { lineStyle: { color: '#e0e6ed' } },
       axisLabel: { color: '#606266', fontSize: 11 }
     },
@@ -537,7 +539,7 @@ function initSalesChart(salesData) {
       axisLabel: { color: '#606266', fontSize: 11 }
     },
     series: [{
-      data: salesData.values,
+      data: values,
       type: 'line',
       smooth: true,
       symbol: 'circle',
