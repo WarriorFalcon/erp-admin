@@ -436,6 +436,7 @@ function resetFilter() {
 }
 
 async function handleView(row) {
+  if (!row?.orderId) return
   try {
     const res = await getOrderDetail(row.orderId)
     if (res.code === 200) {
@@ -479,8 +480,9 @@ async function handleView(row) {
 }
 
 async function handleShip(row) {
+  if (!row?.id) return
   try {
-    await ElMessageBox.confirm(`确认对订单 ${row.order_no || row.id} 执行发货操作？`)
+    await ElMessageBox.confirm(`确认对订单 ${row.orderId || row.id} 执行发货操作？`)
     await shipOrder(row.id, {})
     ElMessage.success('发货成功')
     loadData()
@@ -490,6 +492,7 @@ async function handleShip(row) {
 }
 
 async function handleCancel(row) {
+  if (!row?.id) return
   try {
     const { value: reason } = await ElMessageBox.prompt('请输入取消原因', '取消订单', { inputType: 'textarea' })
     await cancelOrder(row.id, reason || '用户取消')
@@ -514,6 +517,7 @@ async function handleExport() {
 }
 
 async function handleAddress(row) {
+  if (!row?.id) return
   try {
     const { value: addr } = await ElMessageBox.prompt('请输入新收货地址（JSON格式:{"country":"","city":"","street":""}）', '修改地址')
     if (addr) {
@@ -527,6 +531,7 @@ async function handleAddress(row) {
 }
 
 async function handleRemark(row) {
+  if (!row?.id) return
   try {
     const { value: remark } = await ElMessageBox.prompt('请输入备注', '添加备注')
     if (remark) {

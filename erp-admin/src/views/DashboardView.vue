@@ -674,6 +674,24 @@ async function initWorldMap() {
     mapData = [{ name: 'China', value: 0 }]
   }
 
+  // 空数据保护：地图无数据时不崩溃
+  if (mapData.length === 0 || mapData.every(d => d.value === 0)) {
+    mapData = [{ name: 'China', value: 1 }]
+    const emptyOption = {
+      backgroundColor: 'transparent',
+      geo: {
+        map: 'world',
+        roam: true,
+        zoom: 1.2,
+        label: { show: false },
+        itemStyle: { areaColor: '#e8f4fc', borderColor: '#085B9C' }
+      },
+      series: [{ type: 'map', geoIndex: 0, data: mapData }]
+    }
+    mapChart.setOption(emptyOption)
+    return
+  }
+
   const maxVal = Math.max(...mapData.map(d => d.value), 1)
 
   const option = {
